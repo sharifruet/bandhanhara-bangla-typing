@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name">Bandhanhara Bangla</string>
-    <string name="ime_name">বন্ধনহারা বাংলা</string>
+    <string name="ime_name">বাঁধনহারা বাংলা</string>
     <string name="subtype_bangla">বাংলা</string>
 </resources>
