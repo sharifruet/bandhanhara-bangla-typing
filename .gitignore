@@ -1,0 +1,21 @@
+# Web
+web/node_modules/
+web/dist/
+web/.vite/
+
+# Mobile
+mobile/node_modules/
+mobile/.expo/
+mobile/dist/
+
+# Android
+android-ime/.gradle/
+android-ime/app/build/
+android-ime/build/
+android-ime/local.properties
+android-ime/*.iml
+android-ime/.idea/
+
+# OS
+.DS_Store
+*.DS_Store

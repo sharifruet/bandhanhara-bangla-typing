@@ -1,0 +1,36 @@
+.keyboard {
+  width: 100%;
+  background: #CDD0D6;
+  padding: 8px 0 4px;
+  border-top: none;
+  box-sizing: border-box;
+  /* Must be visible so key popups aren't clipped */
+  overflow: visible;
+}
+
+.grid {
+  display: flex;
+  flex-wrap: wrap;
+  /* Each key wrapper is flex:1; 6 per row is enforced by key count */
+  overflow: visible;
+  margin-bottom: 0;
+}
+
+/* Force exactly 6 keys per row */
+.grid > * {
+  flex-basis: calc(100% / 6);
+  max-width: calc(100% / 6);
+}
+
+.controlRow {
+  display: flex;
+  overflow: visible;
+  margin-bottom: 0;
+}
+
+.l3Row {
+  display: flex;
+  overflow: visible;
+  padding: 0 3px;
+  margin-bottom: 2px;
+}

@@ -1,0 +1,80 @@
+/* Wrapper handles layout; popup is positioned relative to it */
+.keyWrap {
+  position: relative;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  padding: 0 3px 6px;
+  z-index: 0;
+  touch-action: none;
+  user-select: none;
+  cursor: pointer;
+}
+
+.keyWrap.wide {
+  flex: 2;
+}
+
+/* iOS-style key popup */
+.popup {
+  position: absolute;
+  bottom: calc(100% - 6px);
+  left: 50%;
+  transform: translateX(-50%);
+  min-width: 130%;
+  background: #ffffff;
+  border-radius: 10px;
+  padding: 8px 4px 30px;  /* tall top, extra bottom so it overlaps the key */
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.22);
+  z-index: 100;
+  pointer-events: none;
+}
+
+.popupChar {
+  font-size: clamp(28px, 7vw, 40px);
+  font-family: 'Noto Sans Bengali', sans-serif;
+  color: #111827;
+  line-height: 1;
+}
+
+/* The key tile itself */
+.key {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #ffffff;
+  border-radius: 5px;
+  min-height: 42px;
+  position: relative;
+  box-shadow: 0 1px 0 rgba(0, 0, 0, 0.4);
+}
+
+.key.action {
+  background: #AEB6BF;
+}
+
+.key.pressed {
+  background: #c8cdd2;
+  box-shadow: none;
+  transform: translateY(1px);
+}
+
+.primary {
+  font-size: clamp(18px, 4.5vw, 24px);
+  line-height: 1;
+  font-family: 'Noto Sans Bengali', sans-serif;
+  color: #111827;
+}
+
+.hint {
+  font-size: clamp(8px, 2vw, 11px);
+  color: #6b7280;
+  position: absolute;
+  top: 3px;
+  right: 4px;
+  font-family: 'Noto Sans Bengali', sans-serif;
+}
