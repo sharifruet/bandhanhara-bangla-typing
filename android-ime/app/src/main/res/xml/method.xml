@@ -1,7 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
-<input-method xmlns:android="http://schemas.android.com/apk/res/android">
+<input-method xmlns:android="http://schemas.android.com/apk/res/android"
+    android:settingsActivity="com.bandhanhara.bangla.SetupActivity"
+    android:supportsSwitchingToNextInputMethod="true">
     <subtype
         android:label="@string/subtype_bangla"
-        android:imeSubtypeLocale="bn"
+        android:imeSubtypeLocale="bn_BD"
+        android:languageTag="bn-BD"
         android:imeSubtypeMode="keyboard" />
 </input-method>

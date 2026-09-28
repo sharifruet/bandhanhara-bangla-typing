@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Keyboard — light -->
+    <color name="kb_bg">#E3E6EC</color>
+    <color name="kb_key">#FFFFFF</color>
+    <color name="kb_key_pressed">#D3D8E0</color>
+    <color name="kb_action">#C2C8D2</color>
+    <color name="kb_action_pressed">#ADB4C0</color>
+    <color name="kb_text">#1B1F27</color>
+    <color name="kb_hint">#6B7280</color>
+    <color name="kb_key_shadow">#2E000000</color>
+    <color name="kb_accent">#4F46E5</color>
+    <color name="kb_on_accent">#FFFFFF</color>
+    <color name="kb_preview">#FFFFFF</color>
+    <color name="kb_preview_border">#22000000</color>
+
+    <!-- Setup screen — light -->
+    <color name="setup_bg">#F5F6F9</color>
+    <color name="setup_card">#FFFFFF</color>
+    <color name="setup_text">#161A22</color>
+    <color name="setup_muted">#6B7280</color>
+    <color name="setup_field">#EEF0F4</color>
+    <color name="setup_success">#15803D</color>
+    <color name="accent">#4F46E5</color>
+
+    <!-- Launcher icon -->
+    <color name="ic_launcher_background">#0F172A</color>
+</resources>

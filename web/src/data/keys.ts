@@ -58,7 +58,7 @@ export const LAYER1_KEYS: KeyDef[] = [
   { primary: '্' },
 ];
 
-// Layer 2 — less frequent (6 columns × 4 rows)
+// Layer 2 — less frequent (6 columns × 5 rows)
 export const LAYER2_KEYS: KeyDef[] = [
   // Row 1: rare consonants
   { primary: 'ঙ' }, { primary: 'ঞ' }, { primary: 'ষ' }, { primary: 'ণ' }, { primary: 'ৎ' }, { primary: 'ঽ' },
@@ -66,14 +66,28 @@ export const LAYER2_KEYS: KeyDef[] = [
   { primary: 'ং' }, { primary: 'ঃ' }, { primary: 'ঁ' }, { primary: 'ঢ়' }, { primary: 'ড়' }, { primary: 'য়' },
   // Row 3: common conjunct components
   { primary: 'ক্ষ' }, { primary: 'জ্ঞ' }, { primary: '্র' }, { primary: 'র্' }, { primary: '্য' }, { primary: '্ব' },
-  // Row 4: Bangla numerals
-  { primary: '০' }, { primary: '১' }, { primary: '২' }, { primary: '৩' }, { primary: '৪' }, { primary: '৫' },
-  { primary: '৬' }, { primary: '৭' }, { primary: '৮' }, { primary: '৯' }, { primary: '৳' }, { primary: '%' },
+  // Rows 4–5: Bangla numerals, long-press → ASCII digits
+  { primary: '০', longPress: '0' }, { primary: '১', longPress: '1' }, { primary: '২', longPress: '2' },
+  { primary: '৩', longPress: '3' }, { primary: '৪', longPress: '4' }, { primary: '৫', longPress: '5' },
+  { primary: '৬', longPress: '6' }, { primary: '৭', longPress: '7' }, { primary: '৮', longPress: '8' },
+  { primary: '৯', longPress: '9' }, { primary: '৳', longPress: '₹' }, { primary: '%', longPress: '‰' },
 ];
 
-// Layer 3 — rare / symbols (6 columns)
+// Layer 3 — symbols & punctuation (6 columns × 5 rows)
 export const LAYER3_KEYS: KeyDef[] = [
-  { primary: '(' }, { primary: ')' }, { primary: '"' }, { primary: '"' }, { primary: '\'' }, { primary: '\'' },
-  { primary: '@' }, { primary: '#' }, { primary: '-' }, { primary: '–' }, { primary: '…' }, { primary: '/' },
-  { primary: '*' }, { primary: '&' }, { primary: '^' }, { primary: '~' }, { primary: '?' }, { primary: '!' },
+  // Row 1: brackets
+  { primary: '(', longPress: '{' }, { primary: ')', longPress: '}' }, { primary: '[', longPress: '<' },
+  { primary: ']', longPress: '>' }, { primary: '{', longPress: '«' }, { primary: '}', longPress: '»' },
+  // Row 2: quotes
+  { primary: '\u201C' }, { primary: '\u201D' }, { primary: '\u2018' }, { primary: '\u2019' },
+  { primary: '"', longPress: '`' }, { primary: "'", longPress: '´' },
+  // Row 3: punctuation
+  { primary: '.', longPress: '…' }, { primary: ',' }, { primary: ';' },
+  { primary: ':', longPress: '॥' }, { primary: '?', longPress: '¿' }, { primary: '!', longPress: '|' },
+  // Row 4: signs & currency
+  { primary: '@' }, { primary: '#', longPress: '№' }, { primary: '৳', longPress: '₹' },
+  { primary: '$', longPress: '€' }, { primary: '%', longPress: '‰' }, { primary: '&', longPress: '§' },
+  // Row 5: math & dashes
+  { primary: '-', longPress: '–' }, { primary: '_', longPress: '—' }, { primary: '+', longPress: '±' },
+  { primary: '=', longPress: '~' }, { primary: '/', longPress: '\\' }, { primary: '*', longPress: '^' },
 ];

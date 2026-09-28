@@ -3,4 +3,49 @@
     <string name="app_name">Bandhanhara Bangla</string>
     <string name="ime_name">বাঁধনহারা বাংলা</string>
     <string name="subtype_bangla">বাংলা</string>
+
+    <!-- Keyboard labels -->
+    <string name="kb_space_label">বাংলা</string>
+    <string name="kb_symbols_label">!?#</string>
+    <string name="kb_letters_label">কখগ</string>
+
+    <!-- Setup screen -->
+    <string name="setup_title">বাঁধনহারা বাংলা</string>
+    <string name="setup_subtitle">Bandhanhara Bangla — a frequency-optimised Bangla keyboard with big keys</string>
+
+    <string name="step1_title">কীবোর্ড চালু করুন</string>
+    <string name="step1_title_en">Enable the keyboard</string>
+    <string name="step1_desc">Turn on “বাঁধনহারা বাংলা” in the system keyboard list.</string>
+    <string name="step1_button">Open keyboard settings</string>
+
+    <string name="step2_title">কীবোর্ড বেছে নিন</string>
+    <string name="step2_title_en">Select the keyboard</string>
+    <string name="step2_desc">Pick বাঁধনহারা বাংলা as your current keyboard. You can switch back any time with the 🌐 key.</string>
+    <string name="step2_button">Choose keyboard</string>
+
+    <string name="step3_title">লিখে দেখুন</string>
+    <string name="step3_title_en">Try it out</string>
+    <string name="step3_hint">এখানে টাইপ করুন…</string>
+
+    <string name="tips_title">টাইপ করার নিয়ম</string>
+    <string name="tips_title_en">How to type</string>
+    <string name="tips_body">Tap ক for ক, hold it for খ. Every aspirate pair works this way: গ→ঘ, চ→ছ, জ→ঝ, ট→ঠ, ত→থ, দ→ধ, প→ফ, ব→ভ, স→শ, ন→ণ.\n\nVowels too: hold অ for আ, ই for ঈ, ি for ী, ে for ৈ.\n\n⇧ opens the second layer (rare letters, conjuncts, digits) for one key. Tap ⇧ twice to lock it.\n\n!?# opens symbols. Hold । for a comma.\n\nThe strip above the keys suggests words. Tap one to insert it. It learns the words you use, on this phone only.\n\nHold digits on the ⇧ layer for 0–9. Hold the 🌐 key to pick any keyboard.</string>
+
+    <string name="learn_title">শেখা শব্দ</string>
+    <string name="learn_title_en">Learning from your typing</string>
+    <string name="learn_desc">The keyboard remembers the words and phrases you use, so its suggestions get better over time. Words you stop using fade out, and a suggestion you pick and then delete is shown less. Everything stays on this phone.</string>
+    <string name="learn_switch">Learn from my typing</string>
+    <string name="learn_clear">Clear learned words</string>
+    <string name="learn_clear_confirm_title">Clear learned words?</string>
+    <string name="learn_clear_confirm_body">Suggestions go back to the built-in dictionary. This can\'t be undone.</string>
+    <string name="learn_clear_confirm_ok">Clear</string>
+    <string name="learn_loading">Loading…</string>
+    <string name="learn_none">No words learned yet.</string>
+    <plurals name="learn_count">
+        <item quantity="one">%d word learned. Most used:</item>
+        <item quantity="other">%d words learned. Most used:</item>
+    </plurals>
+
+    <string name="status_done">✓ Done</string>
+    <string name="status_pending">Not yet</string>
 </resources>

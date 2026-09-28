@@ -1,0 +1,104 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Adaptive-icon foreground: the swift from assets/icon.svg, plus ক and া as real outlines
+  (extracted from Noto Sans Bengali). Coordinates are the SVG's 512-unit space, scaled and
+  centred into the 66/108 safe zone.
+-->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="512"
+    android:viewportHeight="512">
+
+    <group
+        android:pivotX="242"
+        android:pivotY="257"
+        android:scaleX="0.82"
+        android:scaleY="0.82"
+        android:translateX="14"
+        android:translateY="-1">
+
+        <!-- Body -->
+        <path
+            android:fillColor="#FFFFFFFF"
+            android:pathData="M118,218 C162,190 225,193 282,200 C255,214 210,220 178,224 C148,226 128,224 118,218 Z" />
+
+        <!-- Primary wing -->
+        <path
+            android:fillColor="#FFFFFFFF"
+            android:pathData="M178,200 C162,174 136,148 106,134 C118,150 143,175 168,200 Z" />
+
+        <!-- Under-wing -->
+        <path
+            android:fillColor="#59FFFFFF"
+            android:pathData="M175,205 C205,218 245,224 282,219 C252,214 210,208 182,204 Z" />
+
+        <!-- Forked tail -->
+        <path
+            android:strokeColor="#FFFFFFFF"
+            android:strokeWidth="9"
+            android:strokeLineCap="round"
+            android:pathData="M122,217 L88,236" />
+        <path
+            android:strokeColor="#FFFFFFFF"
+            android:strokeWidth="8"
+            android:strokeLineCap="round"
+            android:pathData="M122,217 L86,216" />
+
+        <!-- Head (ellipse, tilted 8°) -->
+        <group
+            android:pivotX="290"
+            android:pivotY="198"
+            android:rotation="-8">
+            <path
+                android:fillColor="#FFFFFFFF"
+                android:pathData="M273,198 a17,14 0 1,0 34,0 a17,14 0 1,0 -34,0 Z" />
+        </group>
+
+        <!-- Eye -->
+        <path
+            android:fillColor="#FF0F172A"
+            android:pathData="M291.5,194 a4.5,4.5 0 1,0 9,0 a4.5,4.5 0 1,0 -9,0 Z" />
+        <path
+            android:fillColor="#FFFFFFFF"
+            android:pathData="M296,193 a1.5,1.5 0 1,0 3,0 a1.5,1.5 0 1,0 -3,0 Z" />
+
+        <!-- Beak -->
+        <path
+            android:fillColor="#FF93C5FD"
+            android:pathData="M302,197 L325,192 L302,202 Z" />
+
+        <!-- Text trail -->
+        <path
+            android:fillColor="#A693C5FD"
+            android:pathData="M304,244 a4,4 0 1,0 8,0 a4,4 0 1,0 -8,0 Z" />
+        <path
+            android:fillColor="#7393C5FD"
+            android:pathData="M312,260 a3,3 0 1,0 6,0 a3,3 0 1,0 -6,0 Z" />
+        <path
+            android:fillColor="#4793C5FD"
+            android:pathData="M318.5,276 a2.5,2.5 0 1,0 5,0 a2.5,2.5 0 1,0 -5,0 Z" />
+
+        <!-- ক — Noto Sans Bengali outline, 1000 upem, drawn at 105 px with baseline (268, 380) -->
+        <group
+            android:scaleX="0.105"
+            android:scaleY="0.105"
+            android:translateX="268"
+            android:translateY="380">
+            <path
+                android:fillColor="#EDFFFFFF"
+                android:pathData="M414 0Q389 -58 338.5 -107.5Q288 -157 220.5 -192.0Q153 -227 76 -239L37 -335Q133 -392 234.0 -440.0Q335 -488 437 -517L414 -482V-551H-10V-622H817V-551H491V0ZM419 -88Q417 -111 415.5 -134.0Q414 -157 414 -189V-474L435 -439Q386 -424 329.5 -400.5Q273 -377 216.5 -348.0Q160 -319 111 -288V-304Q152 -297 199.5 -279.0Q247 -261 292.5 -233.5Q338 -206 374.0 -169.5Q410 -133 428 -88ZM651 -162Q616 -162 592.0 -180.5Q568 -199 568 -233Q568 -262 586.5 -280.5Q605 -299 634 -299Q661 -299 679.0 -283.5Q697 -268 697 -237Q697 -214 680.0 -195.5Q663 -177 627 -177V-236Q656 -236 669.5 -253.0Q683 -270 683 -292Q683 -333 655.0 -366.0Q627 -399 572.0 -419.0Q517 -439 437 -439V-514Q501 -514 559.5 -499.0Q618 -484 663.5 -455.0Q709 -426 735.0 -383.5Q761 -341 761 -285Q761 -254 749.5 -225.5Q738 -197 713.5 -179.5Q689 -162 651 -162Z" />
+        </group>
+
+        <!-- া — drawn at 72 px with baseline (378, 352), fading -->
+        <group
+            android:scaleX="0.072"
+            android:scaleY="0.072"
+            android:translateX="378"
+            android:translateY="352">
+            <path
+                android:fillColor="#7AFFFFFF"
+                android:pathData="M276 -622V-551H171V0H94V-469Q82 -503 58.5 -527.0Q35 -551 -2 -551H-10V-622H10Q35 -622 65.0 -599.0Q95 -576 108 -530H99Q98 -544 96.0 -570.0Q94 -596 94 -617V-688H148L170 -622Z" />
+        </group>
+    </group>
+</vector>
