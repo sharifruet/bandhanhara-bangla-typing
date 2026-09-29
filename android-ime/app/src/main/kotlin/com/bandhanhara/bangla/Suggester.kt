@@ -13,10 +13,23 @@ import kotlin.math.pow
 /** Marks the start of a sentence (or of the field) as the "previous word". */
 const val SENTENCE_START = "<s>"
 
-/** Characters that make up a Bangla word (letters, signs, hasanta, nukta, ZWJ/ZWNJ — not digits). */
-fun isWordChar(c: Char): Boolean =
+/** Characters of a Bangla word (letters, signs, hasanta, nukta, ZWJ/ZWNJ — not digits). */
+fun isBanglaWordChar(c: Char): Boolean =
     c in 'ঀ'..'৥' || c == 'ৰ' || c == 'ৱ' || c in 'ৼ'..'৾' ||
         c == '‌' || c == '‍'
+
+fun isEnglishWordChar(c: Char): Boolean = c in 'a'..'z' || c in 'A'..'Z' || c == '\''
+
+/** Characters that make up a word in either language. */
+fun isWordChar(c: Char): Boolean = isBanglaWordChar(c) || isEnglishWordChar(c)
+
+private fun hasLatin(s: String) = s.any { it in 'a'..'z' || it in 'A'..'Z' }
+
+/** English "i", "i'm", "i'll"… are always written with a capital I. */
+private fun fixPronounI(w: String) = if (w == "i" || w.startsWith("i'")) "I" + w.substring(1) else w
+
+/** Dictionary key for a word: English is matched case-insensitively. */
+fun wordKey(w: String): String = if (hasLatin(w)) w.lowercase() else w
 
 fun nfc(s: CharSequence): String = Normalizer.normalize(s, Normalizer.Form.NFC)
 
@@ -30,9 +43,17 @@ fun nfc(s: CharSequence): String = Normalizer.normalize(s, Normalizer.Form.NFC)
  */
 data class TypingContext(val prev: String, val prev2: String, val prefix: String, val rawPrefixLength: Int)
 
+/** Start of the word that ends at [end]: a run of word characters in one script (Bangla or Latin). */
+private fun wordStart(s: CharSequence, end: Int): Int {
+    if (end <= 0 || !isWordChar(s[end - 1])) return end
+    val bangla = isBanglaWordChar(s[end - 1])
+    var k = end
+    while (k > 0 && isWordChar(s[k - 1]) && isBanglaWordChar(s[k - 1]) == bangla) k--
+    return k
+}
+
 fun parseContext(before: CharSequence): TypingContext {
-    var i = before.length
-    while (i > 0 && isWordChar(before[i - 1])) i--
+    val i = wordStart(before, before.length)
     val rawPrefix = before.subSequence(i, before.length)
 
     // Walk back over up to two whole words, stopping at anything that isn't a space
@@ -43,8 +64,7 @@ fun parseContext(before: CharSequence): TypingContext {
         var j = end
         while (j > 0 && (before[j - 1] == ' ' || before[j - 1] == ' ')) j--
         if (j == 0 || !isWordChar(before[j - 1])) break
-        var k = j
-        while (k > 0 && isWordChar(before[k - 1])) k--
+        val k = wordStart(before, j)
         // A word cut off by the read window isn't trustworthy.
         if (k == 0 && before.length >= CONTEXT_WINDOW) break
         words += nfc(before.subSequence(k, j))
@@ -85,7 +105,7 @@ class Suggester private constructor(context: Context) {
     /** A learned count that fades with time. */
     private class Stat(var count: Double, var day: Int)
 
-    @Volatile private var dict: Dictionary? = null
+    @Volatile private var dicts: Map<Language, Dictionary>? = null
 
     // User knowledge — touched only on the main thread.
     private val userWords = HashMap<String, Stat>()
@@ -105,10 +125,13 @@ class Suggester private constructor(context: Context) {
 
     init {
         io.execute {
-            val d = loadDictionary()
+            val d = mapOf(
+                Language.BANGLA to loadDictionary("dict_words.tsv", "dict_bigrams.tsv"),
+                Language.ENGLISH to loadDictionary("dict_words_en.tsv", "dict_bigrams_en.tsv"),
+            )
             val h = loadHistory()
             main.post {
-                dict = d
+                dicts = d
                 mergeHistory(h)
                 loaded = true
                 readyCallbacks.forEach { it() }
@@ -145,10 +168,31 @@ class Suggester private constructor(context: Context) {
 
     // ── Queries ────────────────────────────────────────────────────────────────
 
-    /** Up to [limit] suggestions, best first. */
-    fun suggest(ctx: TypingContext, limit: Int = 3): List<String> {
-        val d = dict ?: return emptyList()
-        return if (ctx.prefix.isEmpty()) predictNext(d, ctx, limit) else complete(d, ctx, limit)
+    /**
+     * Up to [limit] suggestions, best first. The dictionary follows the script of the word being
+     * typed, or [language] between words. English results take the case of what was typed, and
+     * [capitalize] (sentence start) capitalises predictions.
+     */
+    fun suggest(raw: TypingContext, language: Language, capitalize: Boolean = false, limit: Int = 3): List<String> {
+        val all = dicts ?: return emptyList()
+        val lang = when {
+            raw.prefix.isEmpty() -> language
+            hasLatin(raw.prefix) -> Language.ENGLISH
+            else -> Language.BANGLA
+        }
+        val d = all[lang] ?: return emptyList()
+        val ctx = raw.copy(prev = wordKey(raw.prev), prev2 = wordKey(raw.prev2), prefix = wordKey(raw.prefix))
+        val words = if (ctx.prefix.isEmpty()) predictNext(d, ctx, lang, limit) else complete(d, ctx, limit)
+        if (lang != Language.ENGLISH) return words
+        val typed = raw.prefix
+        return words.map { w ->
+            when {
+                typed.length > 1 && typed.all { !it.isLetter() || it.isUpperCase() } -> w.uppercase()
+                typed.firstOrNull()?.isUpperCase() == true || (typed.isEmpty() && capitalize) ->
+                    w.replaceFirstChar { it.uppercaseChar() }
+                else -> w
+            }.let(::fixPronounI)
+        }.distinct()
     }
 
     private fun complete(d: Dictionary, ctx: TypingContext, limit: Int): List<String> {
@@ -170,12 +214,16 @@ class Suggester private constructor(context: Context) {
             .take(limit)
     }
 
-    private fun predictNext(d: Dictionary, ctx: TypingContext, limit: Int): List<String> {
+    private fun predictNext(d: Dictionary, ctx: TypingContext, lang: Language, limit: Int): List<String> {
         val scores = HashMap<String, Double>()
         d.next[ctx.prev]?.forEach { (w, c) -> scores[w] = ln(1.0 + c) }
-        userPairs[ctx.prev]?.forEach { (w, s) -> scores[w] = (scores[w] ?: 0.0) + 3.0 * ln(1.0 + weight(s)) + 1.0 }
+        // Learned follow-ups, but only in the language being typed.
+        val sameScript = { w: String -> hasLatin(w) == (lang == Language.ENGLISH) }
+        userPairs[ctx.prev]?.forEach { (w, s) ->
+            if (sameScript(w)) scores[w] = (scores[w] ?: 0.0) + 3.0 * ln(1.0 + weight(s)) + 1.0
+        }
         userTriples[tripleKey(ctx.prev2, ctx.prev)]?.forEach { (w, s) ->
-            scores[w] = (scores[w] ?: 0.0) + 5.0 * ln(1.0 + weight(s)) + 2.0
+            if (sameScript(w)) scores[w] = (scores[w] ?: 0.0) + 5.0 * ln(1.0 + weight(s)) + 2.0
         }
         rejected[ctx.prev]?.forEach { (w, s) -> scores[w]?.let { scores[w] = it - REJECT_WEIGHT * ln(1.0 + weight(s)) } }
 
@@ -203,8 +251,10 @@ class Suggester private constructor(context: Context) {
     // ── Learning ───────────────────────────────────────────────────────────────
 
     /** Record that the user finished typing (or picked) [word] after [ctx]'s previous words. */
-    fun learn(ctx: TypingContext, word: String) {
+    fun learn(raw: TypingContext, typed: String) {
+        val word = wordKey(typed)
         if (!learningEnabled || !isLearnable(word)) return
+        val ctx = raw.copy(prev = wordKey(raw.prev), prev2 = wordKey(raw.prev2))
         bump(userWords.getOrPut(word) { Stat(0.0, today()) })
         bump(userPairs.getOrPut(ctx.prev) { HashMap() }.getOrPut(word) { Stat(0.0, today()) })
         if (ctx.prev != SENTENCE_START) {
@@ -216,8 +266,10 @@ class Suggester private constructor(context: Context) {
     }
 
     /** The user picked [word] from the strip and then deleted into it: undo that learning and demote it here. */
-    fun reject(ctx: TypingContext, word: String) {
+    fun reject(raw: TypingContext, typed: String) {
         if (!learningEnabled) return
+        val word = wordKey(typed)
+        val ctx = raw.copy(prev = wordKey(raw.prev), prev2 = wordKey(raw.prev2))
         drop(userWords, word)
         userPairs[ctx.prev]?.let { drop(it, word) }
         userTriples[tripleKey(ctx.prev2, ctx.prev)]?.let { drop(it, word) }
@@ -232,7 +284,9 @@ class Suggester private constructor(context: Context) {
     }
 
     private fun isLearnable(word: String) =
-        word.isNotEmpty() && word.length <= 24 && word.any { it in 'অ'..'হ' }
+        // One script only: a Bangla word or an English word, never a run of both.
+        word.length in 1..24 && (word.any { it in '\u0985'..'\u09B9' } != hasLatin(word)) &&
+            (!hasLatin(word) || word.length > 1 || word == "a" || word == "i")
 
     private fun tripleKey(prev2: String, prev: String) = "$prev2\u0001$prev"
 
@@ -311,22 +365,30 @@ class Suggester private constructor(context: Context) {
         }
     }
 
-    private fun loadDictionary(): Dictionary {
+    private fun loadDictionary(wordsFile: String, pairsFile: String): Dictionary {
         val freq = HashMap<String, Int>(40_000)
-        appContext.assets.open("dict_words.tsv").bufferedReader().useLines { lines ->
+        val mostCommon = ArrayList<String>(12)   // the file is sorted by frequency
+        appContext.assets.open(wordsFile).bufferedReader().useLines { lines ->
             for (line in lines) {
                 val tab = line.indexOf('\t')
-                if (tab > 0) freq[line.substring(0, tab)] = line.substring(tab + 1).toIntOrNull() ?: 0
+                if (tab <= 0) continue
+                val w = line.substring(0, tab)
+                freq[w] = line.substring(tab + 1).toIntOrNull() ?: 0
+                if (mostCommon.size < 12) mostCommon += w
             }
         }
         val next = HashMap<String, MutableList<Pair<String, Int>>>(8_000)
-        appContext.assets.open("dict_bigrams.tsv").bufferedReader().useLines { lines ->
-            for (line in lines) {
-                val p = line.split('\t')
-                if (p.size == 3) next.getOrPut(p[0]) { ArrayList(4) } += p[1] to (p[2].toIntOrNull() ?: 0)
+        // Word pairs are optional: without them, next-word prediction falls back to learned pairs and openers.
+        runCatching {
+            appContext.assets.open(pairsFile).bufferedReader().useLines { lines ->
+                for (line in lines) {
+                    val p = line.split('\t')
+                    if (p.size == 3) next.getOrPut(p[0]) { ArrayList(4) } += p[1] to (p[2].toIntOrNull() ?: 0)
+                }
             }
         }
-        val starters = next[SENTENCE_START]?.sortedByDescending { it.second }?.map { it.first }.orEmpty()
+        val starters = next[SENTENCE_START]?.sortedByDescending { it.second }?.map { it.first }
+            ?.takeIf { it.isNotEmpty() } ?: mostCommon
         val sorted = freq.keys.toTypedArray().also { it.sort() }
         return Dictionary(sorted, freq, HashMap(next), starters)
     }

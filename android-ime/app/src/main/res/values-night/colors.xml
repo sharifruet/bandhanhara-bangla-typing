@@ -1,25 +1,25 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <!-- Keyboard — dark -->
-    <color name="kb_bg">#1B1E24</color>
-    <color name="kb_key">#3A3F49</color>
-    <color name="kb_key_pressed">#4D535E</color>
-    <color name="kb_action">#272B33</color>
-    <color name="kb_action_pressed">#3A3F49</color>
-    <color name="kb_text">#F2F4F7</color>
-    <color name="kb_hint">#A0A8B5</color>
+    <color name="kb_bg">#171A18</color>
+    <color name="kb_key">#363B38</color>
+    <color name="kb_key_pressed">#484E4A</color>
+    <color name="kb_action">#252927</color>
+    <color name="kb_action_pressed">#363B38</color>
+    <color name="kb_text">#EEF1EE</color>
+    <color name="kb_hint">#A2A9A4</color>
     <color name="kb_key_shadow">#66000000</color>
-    <color name="kb_accent">#6C63F0</color>
+    <color name="kb_accent">#4E9A82</color>
     <color name="kb_on_accent">#FFFFFF</color>
-    <color name="kb_preview">#4D535E</color>
+    <color name="kb_preview">#484E4A</color>
     <color name="kb_preview_border">#33000000</color>
 
-    <!-- Setup screen — dark -->
-    <color name="setup_bg">#111318</color>
-    <color name="setup_card">#1C1F26</color>
-    <color name="setup_text">#F2F4F7</color>
-    <color name="setup_muted">#9AA3AF</color>
-    <color name="setup_field">#262A33</color>
-    <color name="setup_success">#4ADE80</color>
-    <color name="accent">#7C74F5</color>
+    <!-- Setup and settings screens — dark -->
+    <color name="setup_bg">#121513</color>
+    <color name="setup_card">#1C201E</color>
+    <color name="setup_text">#EEF1EE</color>
+    <color name="setup_muted">#9AA39D</color>
+    <color name="setup_field">#262B28</color>
+    <color name="setup_success">#6FCF97</color>
+    <color name="accent">#6DB39B</color>
 </resources>

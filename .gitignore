@@ -19,3 +19,11 @@ android-ime/.idea/
 # OS
 .DS_Store
 *.DS_Store
+
+# Dictionary build downloads
+android-ime/tools/.cache/
+
+# Play Store upload key (never commit)
+android-ime/keystore/
+*.jks
+*.keystore

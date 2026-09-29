@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Android 12+. Settings are backed up; words learned from typing never leave the phone. -->
+<data-extraction-rules>
+    <cloud-backup>
+        <exclude domain="file" path="user_history.tsv" />
+    </cloud-backup>
+    <device-transfer>
+        <exclude domain="file" path="user_history.tsv" />
+    </device-transfer>
+</data-extraction-rules>

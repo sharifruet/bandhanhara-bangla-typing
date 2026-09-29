@@ -14,6 +14,7 @@ import android.media.AudioManager
 import android.os.Build
 import android.os.Handler
 import android.os.Looper
+import android.text.TextUtils
 import android.view.Gravity
 import android.view.HapticFeedbackConstants
 import android.view.MotionEvent
@@ -23,6 +24,7 @@ import android.view.WindowInsets
 import android.view.WindowManager
 import android.widget.PopupWindow
 import androidx.core.graphics.ColorUtils
+import kotlin.math.abs
 import kotlin.math.max
 import kotlin.math.min
 import kotlin.math.roundToInt
@@ -34,76 +36,98 @@ enum class EnterAction { NEWLINE, GO, SEARCH, SEND, NEXT, DONE }
 /**
  * The keyboard: one custom-drawn View.
  *
- * Six character columns × five character rows, plus a control row. Every size derives from the
- * view width (capped by screen height in landscape / on short screens) so keys are always as large
- * as the screen allows. Character keys commit on release, backspace fires on press and repeats,
- * long-press (320 ms) commits the key's alternate. Two-thumb typing is supported: a second finger
- * going down commits the first key immediately.
+ * Layout, top to bottom:
+ *  - a strip: toolbar button + three word suggestions (or a clipboard chip, or the toolbar:
+ *    emoji · clipboard · voice · settings),
+ *  - character rows: Bangla 6 × 5, English QWERTY with a number row, or the shared symbol layer,
+ *  - a control row: ⇧ · !?# · 🌐 · space · ।/. · ⌫ · ↵.
+ *
+ * The character area has the same height in every layout, so switching language or layer never
+ * makes the keyboard jump. Sizes derive from the view width (and a cap on screen height) times the
+ * user's height setting.
+ *
+ * Gestures: long-press for a key's alternate; hold ⌫ to repeat (speeding up to whole words);
+ * drag along the space bar to move the cursor; a second finger commits the first key at once.
  */
-class BanglaKeyboardView(context: Context) : View(context) {
+class BanglaKeyboardView(context: Context, private val prefs: Prefs) : View(context) {
 
     // ── Callbacks, wired by the IME service ────────────────────────────────────
     var onChar: ((String) -> Unit)? = null
     var onBackspace: (() -> Unit)? = null
+    var onDeleteWord: (() -> Unit)? = null
     var onEnter: (() -> Unit)? = null
-    var onSwitchIme: (() -> Unit)? = null
+    var onGlobe: (() -> Unit)? = null
     var onShowImePicker: (() -> Unit)? = null
     var onSuggestion: ((String) -> Unit)? = null
+    var onCursorMove: ((Int) -> Unit)? = null
+    var onEmoji: (() -> Unit)? = null
+    var onClipboard: (() -> Unit)? = null
+    var onVoice: (() -> Unit)? = null
+    var onSettings: (() -> Unit)? = null
+    var onPasteClip: (() -> Unit)? = null
 
-    // ── Layer / editor state ───────────────────────────────────────────────────
+    // ── Keyboard state ─────────────────────────────────────────────────────────
+    var language = Language.BANGLA
+        private set
     private var layer = Layer.L1
     private var shiftMode = ShiftMode.NORMAL
+    /** ⇧ was turned on automatically (English sentence start), not by the user. */
+    private var autoShifted = false
     private var enterAction = EnterAction.NEWLINE
     private var numericMode = false
+    /** Bangla vowel row: showing vowel signs (true) or full vowels (false). */
+    private var vowelSigns = false
+    /** The user flipped the vowel row by hand; automatic switching waits until the next character. */
+    private var vowelManual = false
 
-    /** Current suggestions, best first. Shown in the strip as [2nd] [1st] [3rd]. */
     private var suggestions: List<String> = emptyList()
+    private var clipChip: String? = null
+    private var toolbarOpen = false
+
+    // Settings snapshot (the service rebuilds the view when appearance settings change).
+    private val showHints = prefs.showHints
+    private val showPreview = prefs.keyPreview
+    private val longPressMs = prefs.longPressMs
+    private val heightScale = prefs.heightScale
 
     // ── Key model ──────────────────────────────────────────────────────────────
-    private enum class Action { SHIFT, SYMBOLS, GLOBE, SPACE, BACKSPACE, ENTER, SUGGESTION }
+    private enum class Action {
+        SHIFT, SYMBOLS, GLOBE, SPACE, BACKSPACE, ENTER, VOWEL_TOGGLE,
+        SUGGESTION, CLIP_CHIP, TOOLBAR_TOGGLE, TOOL_EMOJI, TOOL_CLIPBOARD, TOOL_VOICE, TOOL_SETTINGS,
+    }
 
     /**
-     * A laid-out key. [rect] is what is drawn; [hit] is the touch target and includes the gaps.
-     * For suggestion cells, [slot] is the index into [suggestions].
+     * A laid-out key. [rect] is what is drawn; [hit] is the touch target (includes the gaps).
+     * [slot] is the suggestion rank for suggestion cells; [textSize] the label size for character keys.
      */
-    private class KeyItem(val rect: RectF, val hit: RectF, val def: KeyDef?, val action: Action?, val slot: Int = -1)
-
-    private class ControlKey(val action: Action?, val def: KeyDef?, val units: Int)
-
-    // ⇧ | !?# | 🌐 | ␣ ␣ | । | ⌫ | ↵   — 8 units across the width of 6 character keys
-    private val controlRow = listOf(
-        ControlKey(Action.SHIFT, null, 1),
-        ControlKey(Action.SYMBOLS, null, 1),
-        ControlKey(Action.GLOBE, null, 1),
-        ControlKey(Action.SPACE, null, 2),
-        ControlKey(null, KeyDef("।", ","), 1),
-        ControlKey(Action.BACKSPACE, null, 1),
-        ControlKey(Action.ENTER, null, 1),
+    private class KeyItem(
+        val rect: RectF, val hit: RectF, val def: KeyDef?, val action: Action?,
+        val slot: Int = -1, val textSize: Float = 0f,
     )
-    private val controlUnits = controlRow.sumOf { it.units }
-    private val keys = ArrayList<KeyItem>(SUGGESTION_SLOTS + CHAR_ROWS * COLS + controlRow.size)
+
+    private val keys = ArrayList<KeyItem>(64)
 
     // ── Metrics (px) ───────────────────────────────────────────────────────────
     private val density = resources.displayMetrics.density
     private fun dp(v: Float) = v * density
     private val gapX = dp(2.5f)
-    private val gapY = dp(3f)
+    private val gapY = dp(2.5f)
     private val padX = dp(3f)
     private val padTop = dp(4f)
     private val padBottom = dp(3f)
     private val radius = dp(6f)
     private val shadowDy = dp(1f)
-    private val stripH = dp(42f)
-    private var keyW = 0f
-    private var keyH = 0f
-    private var unitW = 0f
+    private val stripH = dp(38f)
+    private var keyH = 0f          // height of a key in the 5-row Bangla grid
+    private var unitW = 0f         // one unit of the control row
     private var fontSize = 0f
     private var hintSize = 0f
     private var labelSize = 0f
     private var iconSize = 0f
-    private var textBaseline = 0f
     private var labelBaseline = 0f
-    private var bottomInset = 0
+    private var suggestionSize = 0f
+    var bottomInset = 0
+        private set
 
     // ── Colours ────────────────────────────────────────────────────────────────
     private val cBg = context.getColor(R.color.kb_bg)
@@ -119,6 +143,7 @@ class BanglaKeyboardView(context: Context) : View(context) {
     private val cOnAccent = context.getColor(R.color.kb_on_accent)
     private val cPreview = context.getColor(R.color.kb_preview)
     private val cPreviewBorder = context.getColor(R.color.kb_preview_border)
+    private val cChip = ColorUtils.setAlphaComponent(cAccent, 0x2A)
 
     // ── Paint & assets ─────────────────────────────────────────────────────────
     private val bangla: Typeface = resources.getFont(R.font.noto_sans_bengali)
@@ -135,10 +160,10 @@ class BanglaKeyboardView(context: Context) : View(context) {
     private val suggestionPaint = Paint(Paint.ANTI_ALIAS_FLAG or Paint.SUBPIXEL_TEXT_FLAG).apply {
         typeface = bangla; textAlign = Paint.Align.CENTER
     }
-    private val dividerPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-        strokeWidth = dp(1f)
+    private val chipPaint = Paint(Paint.ANTI_ALIAS_FLAG or Paint.SUBPIXEL_TEXT_FLAG).apply {
+        typeface = bangla; textAlign = Paint.Align.LEFT
     }
-    private var suggestionSize = 0f
+    private val dividerPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply { strokeWidth = dp(1f) }
 
     private fun icon(id: Int): Drawable = context.getDrawable(id)!!.mutate()
     private val icBackspace = icon(R.drawable.ic_backspace)
@@ -151,10 +176,14 @@ class BanglaKeyboardView(context: Context) : View(context) {
     private val icSend = icon(R.drawable.ic_send)
     private val icCheck = icon(R.drawable.ic_check)
     private val icArrowForward = icon(R.drawable.ic_arrow_forward)
+    private val icApps = icon(R.drawable.ic_apps)
+    private val icChevronLeft = icon(R.drawable.ic_chevron_left)
+    private val icEmoji = icon(R.drawable.ic_emoji)
+    private val icClipboard = icon(R.drawable.ic_clipboard)
+    private val icMic = icon(R.drawable.ic_mic)
+    private val icSettings = icon(R.drawable.ic_settings)
 
-    private val spaceLabel = context.getString(R.string.kb_space_label)
     private val symbolsLabel = context.getString(R.string.kb_symbols_label)
-    private val lettersLabel = context.getString(R.string.kb_letters_label)
 
     private val audio: AudioManager? = context.getSystemService(AudioManager::class.java)
 
@@ -166,6 +195,9 @@ class BanglaKeyboardView(context: Context) : View(context) {
     private var backspaceFiredOnDown = false
     private var longPressRunnable: Runnable? = null
     private var repeatRunnable: Runnable? = null
+    private var downX = 0f
+    private var cursorMode = false
+    private var cursorAnchorX = 0f
 
     // ── Key preview popup ──────────────────────────────────────────────────────
     private val preview = KeyPreview(context, bangla, cPreview, cText, cPreviewBorder, radius, dp(1f))
@@ -181,25 +213,40 @@ class BanglaKeyboardView(context: Context) : View(context) {
 
     init {
         isHapticFeedbackEnabled = true
+        language = prefs.language
         // On edge-to-edge systems the IME window extends under the navigation bar; pad for it.
         setOnApplyWindowInsetsListener { _, insets ->
-            // The IME's own nav bar (hide chevron + switcher) is a tappable element taller than the
-            // gesture-bar inset, so take whichever is larger.
-            val bottom = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
-                max(
-                    insets.getInsets(WindowInsets.Type.navigationBars()).bottom,
-                    insets.getInsets(WindowInsets.Type.tappableElement()).bottom,
-                )
-            } else {
-                @Suppress("DEPRECATION")
-                insets.systemWindowInsetBottom
-            }
-            val clamped = bottom.coerceIn(0, dp(56f).roundToInt())
-            if (clamped != bottomInset) {
-                bottomInset = clamped
-                requestLayout()
-            }
+            applyBottomInset(insets)
             insets
+        }
+    }
+
+    /**
+     * A view swapped in with setInputView() (after a settings change) isn't sent the window insets
+     * again, so read them from the window as soon as we're attached.
+     */
+    override fun onAttachedToWindow() {
+        super.onAttachedToWindow()
+        rootWindowInsets?.let(::applyBottomInset)
+        requestApplyInsets()
+    }
+
+    private fun applyBottomInset(insets: WindowInsets) {
+        // The IME's own nav bar (hide chevron + switcher) is a tappable element taller than the
+        // gesture-bar inset, so take whichever is larger.
+        val bottom = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+            max(
+                insets.getInsets(WindowInsets.Type.navigationBars()).bottom,
+                insets.getInsets(WindowInsets.Type.tappableElement()).bottom,
+            )
+        } else {
+            @Suppress("DEPRECATION")
+            insets.systemWindowInsetBottom
+        }
+        val clamped = bottom.coerceIn(0, dp(56f).roundToInt())
+        if (clamped != bottomInset) {
+            bottomInset = clamped
+            requestLayout()
         }
     }
 
@@ -212,8 +259,42 @@ class BanglaKeyboardView(context: Context) : View(context) {
         if (resetLayer) {
             layer = if (numeric) Layer.L2 else Layer.L1
             shiftMode = if (numeric) ShiftMode.LOCKED else ShiftMode.NORMAL
+            autoShifted = false
+            toolbarOpen = false
+            vowelManual = false
         }
         rebuildKeys()
+    }
+
+    fun setLanguage(lang: Language) {
+        if (lang == language) return
+        language = lang
+        layer = Layer.L1
+        shiftMode = ShiftMode.NORMAL
+        autoShifted = false
+        rebuildKeys()
+    }
+
+    /** English sentence-start capitals: the service says whether the next letter should be a capital. */
+    fun setAutoCaps(on: Boolean) {
+        if (language != Language.ENGLISH || numericMode) return
+        if (on && layer == Layer.L1) {
+            autoShifted = true
+            setLayer(Layer.L2, ShiftMode.ONESHOT)
+        } else if (!on && autoShifted && layer == Layer.L2 && shiftMode == ShiftMode.ONESHOT) {
+            autoShifted = false
+            setLayer(Layer.L1, ShiftMode.NORMAL)
+        }
+    }
+
+    /**
+     * The service says what the text before the cursor wants: vowel signs after a consonant, full
+     * vowels otherwise. Ignored while the user has flipped the row by hand.
+     */
+    fun setAutoVowelSigns(signs: Boolean) {
+        if (vowelManual || signs == vowelSigns) return
+        vowelSigns = signs
+        if (language == Language.BANGLA && layer == Layer.L1 && !numericMode) rebuildKeys()
     }
 
     /** Replace the words shown in the suggestion strip (best first, up to three). */
@@ -224,6 +305,20 @@ class BanglaKeyboardView(context: Context) : View(context) {
         invalidate()
     }
 
+    /** Show (or hide, with null) a "paste what you just copied" chip in the strip. */
+    fun setClipChip(text: String?) {
+        if (text == clipChip) return
+        val layoutChanged = (text == null) != (clipChip == null)
+        clipChip = text
+        if (layoutChanged) rebuildKeys() else invalidate()
+    }
+
+    fun closeToolbar() {
+        if (!toolbarOpen) return
+        toolbarOpen = false
+        rebuildKeys()
+    }
+
     /** Drop any in-progress press (keyboard hidden, field lost, …). */
     fun cancelInteraction() {
         cancelTimers()
@@ -231,6 +326,7 @@ class BanglaKeyboardView(context: Context) : View(context) {
         pressed = null
         activePointerId = -1
         longPressFired = false
+        cursorMode = false
         invalidate()
     }
 
@@ -240,31 +336,32 @@ class BanglaKeyboardView(context: Context) : View(context) {
         val dm = resources.displayMetrics
         val landscape = resources.configuration.orientation == Configuration.ORIENTATION_LANDSCAPE
         val innerW = w - padX * 2
-        keyW = innerW / COLS - gapX * 2
-        unitW = innerW / controlUnits - gapX * 2
+        val keyW = innerW / COLS - gapX * 2
+        unitW = innerW / CONTROL_UNITS - gapX * 2
 
-        // Never let the keyboard eat more than 44 % of the screen (58 % in landscape).
-        val maxTotal = dm.heightPixels * (if (landscape) 0.58f else 0.44f)
-        val maxKeyH = (maxTotal - stripH - padTop - padBottom) / ROWS - gapY * 2
-        keyH = min(keyW * 0.8f, maxKeyH).coerceAtLeast(dp(34f))
+        // Never let the keyboard eat more than ~38 % of the screen (52 % in landscape).
+        val maxTotal = dm.heightPixels * (if (landscape) 0.52f else 0.38f) * heightScale
+        val maxKeyH = (maxTotal - stripH - padTop - padBottom) / (CHAR_AREA + 1) - gapY * 2
+        keyH = min(keyW * 0.66f * heightScale, maxKeyH).coerceAtLeast(dp(34f))
 
         suggestionSize = dp(19f)
-        suggestionPaint.textSize = suggestionSize
+        chipPaint.textSize = dp(15f)
         dividerPaint.color = ColorUtils.setAlphaComponent(cHint, 0x55)
 
-        fontSize = keyH * 0.54f
+        fontSize = keyH * 0.58f
         hintSize = max(dp(9f), fontSize * 0.36f)
         labelSize = fontSize * 0.55f
         iconSize = (keyH * 0.42f).coerceIn(dp(16f), dp(30f))
 
-        textPaint.textSize = fontSize
         hintPaint.textSize = hintSize
         labelPaint.textSize = labelSize
-        textBaseline = baselineOffset(textPaint)
-        labelBaseline = baselineOffset(labelPaint)
+        labelBaseline = baselineOffset(labelPaint, "ক")
     }
 
-    private fun contentHeight() = stripH + padTop + ROWS * (keyH + gapY * 2) + padBottom
+    private fun contentHeight() = stripH + padTop + (CHAR_AREA + 1) * (keyH + gapY * 2) + padBottom
+
+    /** Total height of the keyboard, used by the emoji and clipboard panels to match it. */
+    val keyboardHeight: Int get() = (contentHeight() + bottomInset).roundToInt()
 
     override fun onMeasure(widthMeasureSpec: Int, heightMeasureSpec: Int) {
         val w = MeasureSpec.getSize(widthMeasureSpec)
@@ -284,33 +381,61 @@ class BanglaKeyboardView(context: Context) : View(context) {
             return
         }
         val w = width.toFloat()
+        buildStrip(w)
 
-        // Suggestion strip: three equal cells across the top. Best guess sits in the middle.
-        val cellW = w / SUGGESTION_SLOTS
-        for (cell in 0 until SUGGESTION_SLOTS) {
-            val r = RectF(cell * cellW, 0f, (cell + 1) * cellW, stripH)
-            keys += KeyItem(RectF(r).apply { inset(dp(4f), dp(4f)) }, r, null, Action.SUGGESTION, SLOT_FOR_CELL[cell])
-        }
-
+        // Character rows share a fixed area, whatever their count.
+        val rows = rowsFor(language, layer, numericMode, vowelSigns)
+        val area = CHAR_AREA * (keyH + gapY * 2)
+        val pitch = area / rows.size
+        val rowKeyH = pitch - gapY * 2
+        val maxCols = max(COLS, rows.maxOf { it.size })
+        // English staggers its shorter rows (QWERTY); every other layout fills each row edge to edge.
+        val stagger = language == Language.ENGLISH && layer != Layer.L3 && !numericMode
         var top = stripH + padTop
-        for (row in keysFor(layer, numericMode).chunked(COLS)) {
-            var left = padX
-            for (def in row) {
-                keys += keyItem(left, top, keyW, def, null)
-                left += keyW + gapX * 2
+        for (row in rows) {
+            // The vowel/sign switch key is narrower than a letter so the vowel row fits 7 letters.
+            val weights = row.map { if (it.primary == VOWEL_TOGGLE_ID) TOGGLE_WEIGHT else 1f }
+            val units = if (stagger) maxCols.toFloat() else weights.sum()
+            val unitW = (w - padX * 2) / units
+            val size = min(fontSize * (rowKeyH / keyH).coerceAtMost(1.1f), (unitW - gapX * 2) * 0.62f)
+            var left = padX + (units - weights.sum()) * unitW / 2
+            row.forEachIndexed { i, def ->
+                val toggle = def.primary == VOWEL_TOGGLE_ID
+                val colW = unitW * weights[i]
+                val keyW = colW - gapX * 2
+                val k = KeyItem(
+                    rect = RectF(left + gapX, top + gapY, left + gapX + keyW, top + gapY + rowKeyH),
+                    hit = RectF(left, top, left + colW, top + pitch),
+                    def = if (toggle) null else def,
+                    action = if (toggle) Action.VOWEL_TOGGLE else null,
+                    textSize = size,
+                )
+                // Rows narrower than the widest one: the end keys also catch the empty margins.
+                if (i == 0) k.hit.left = 0f
+                if (i == row.lastIndex) k.hit.right = w
+                keys += k
+                left += colW
             }
-            top += keyH + gapY * 2
+            top += pitch
         }
+
+        // Control row
         var left = padX
-        for (c in controlRow) {
-            val cw = unitW * c.units + gapX * 2 * (c.units - 1)
-            keys += keyItem(left, top, cw, c.def, c.action)
+        for ((action, units) in CONTROL_ROW) {
+            val cw = unitW * units + gapX * 2 * (units - 1)
+            val def = if (action == null) punctuationKey() else null
+            keys += KeyItem(
+                rect = RectF(left + gapX, top + gapY, left + gapX + cw, top + gapY + keyH),
+                hit = RectF(left, top, left + cw + gapX * 2, top + keyH + gapY * 2),
+                def = def, action = action, textSize = fontSize,
+            )
             left += cw + gapX * 2
         }
+
         // Edge keys also catch touches in the outer padding.
         val bottomEdge = contentHeight()
         for (k in keys) {
-            if (k.action == Action.SUGGESTION) continue
+            if (k.hit.top < stripH) continue
             if (k.hit.left <= padX + 0.5f) k.hit.left = 0f
             if (k.hit.right >= w - padX - 0.5f) k.hit.right = w
             if (k.hit.top <= stripH + padTop + 0.5f) k.hit.top = stripH
@@ -319,12 +444,28 @@ class BanglaKeyboardView(context: Context) : View(context) {
         invalidate()
     }
 
-    private fun keyItem(left: Float, top: Float, w: Float, def: KeyDef?, action: Action?) = KeyItem(
-        rect = RectF(left + gapX, top + gapY, left + gapX + w, top + gapY + keyH),
-        hit = RectF(left, top, left + w + gapX * 2, top + keyH + gapY * 2),
-        def = def,
-        action = action,
-    )
+    private fun buildStrip(w: Float) {
+        fun cell(l: Float, r: Float, action: Action, slot: Int = -1) {
+            val hit = RectF(l, 0f, r, stripH)
+            keys += KeyItem(RectF(hit).apply { inset(dp(4f), dp(4f)) }, hit, null, action, slot)
+        }
+        cell(0f, stripH, Action.TOOLBAR_TOGGLE)
+        val l = stripH
+        when {
+            toolbarOpen -> {
+                val tools = listOf(Action.TOOL_EMOJI, Action.TOOL_CLIPBOARD, Action.TOOL_VOICE, Action.TOOL_SETTINGS)
+                val cw = (w - l) / tools.size
+                tools.forEachIndexed { i, a -> cell(l + i * cw, l + (i + 1) * cw, a) }
+            }
+            clipChip != null -> cell(l, w - dp(8f), Action.CLIP_CHIP)
+            else -> {
+                val cw = (w - l) / SUGGESTION_SLOTS
+                for (c in 0 until SUGGESTION_SLOTS) cell(l + c * cw, l + (c + 1) * cw, Action.SUGGESTION, SLOT_FOR_CELL[c])
+            }
+        }
+    }
+
+    private fun punctuationKey() = if (language == Language.ENGLISH) KeyDef(".", ",") else KeyDef("।", ",")
 
     private fun setLayer(newLayer: Layer, newMode: ShiftMode) {
         if (layer == newLayer && shiftMode == newMode) return
@@ -340,37 +481,73 @@ class BanglaKeyboardView(context: Context) : View(context) {
         for (k in keys) drawKey(canvas, k)
     }
 
-    private fun drawSuggestion(canvas: Canvas, k: KeyItem) {
-        // Thin dividers between cells.
-        if (k.hit.left > 0f) {
-            val inset = stripH * 0.28f
-            canvas.drawLine(k.hit.left, inset, k.hit.left, stripH - inset, dividerPaint)
-        }
-        val word = suggestions.getOrNull(k.slot) ?: return
+    private fun drawStripCell(canvas: Canvas, k: KeyItem) {
         val r = k.rect
-        if (k === pressed) {
-            fillPaint.color = cKeyPressed
-            canvas.drawRoundRect(r, radius, radius, fillPaint)
+        val isPressed = k === pressed
+        when (k.action) {
+            Action.SUGGESTION -> {
+                if (k.hit.left > stripH + 1f) {
+                    val inset = stripH * 0.28f
+                    canvas.drawLine(k.hit.left, inset, k.hit.left, stripH - inset, dividerPaint)
+                }
+                val word = suggestions.getOrNull(k.slot) ?: return
+                if (isPressed) {
+                    fillPaint.color = cKeyPressed
+                    canvas.drawRoundRect(r, radius, radius, fillPaint)
+                }
+                // Shrink long words to fit the cell rather than cutting them off.
+                val maxW = r.width() - dp(8f)
+                suggestionPaint.textSize = suggestionSize
+                val tw = suggestionPaint.measureText(word)
+                if (tw > maxW) suggestionPaint.textSize = suggestionSize * maxW / tw
+                suggestionPaint.color = cText
+                suggestionPaint.isFakeBoldText = k.slot == 0
+                canvas.drawText(word, r.centerX(), r.centerY() + baselineOffset(suggestionPaint, refGlyph(word)), suggestionPaint)
+            }
+            Action.CLIP_CHIP -> {
+                val text = clipChip ?: return
+                fillPaint.color = if (isPressed) ColorUtils.setAlphaComponent(cAccent, 0x44) else cChip
+                canvas.drawRoundRect(r, r.height() / 2, r.height() / 2, fillPaint)
+                val s = (r.height() * 0.55f).roundToInt()
+                icClipboard.setTint(cAccent)
+                val il = (r.left + dp(10f)).roundToInt()
+                val it = (r.centerY() - s / 2f).roundToInt()
+                icClipboard.setBounds(il, it, il + s, it + s)
+                icClipboard.draw(canvas)
+                chipPaint.color = cText
+                val start = il + s + dp(8f)
+                val shown = TextUtils.ellipsize(
+                    text.replace('\n', ' '), android.text.TextPaint(chipPaint), r.right - start - dp(12f), TextUtils.TruncateAt.END,
+                ).toString()
+                canvas.drawText(shown, start, r.centerY() + baselineOffset(chipPaint, "Hক"), chipPaint)
+            }
+            else -> {
+                if (isPressed) {
+                    fillPaint.color = cKeyPressed
+                    canvas.drawRoundRect(r, radius, radius, fillPaint)
+                }
+                val d = when (k.action) {
+                    Action.TOOLBAR_TOGGLE -> if (toolbarOpen) icChevronLeft else icApps
+                    Action.TOOL_EMOJI -> icEmoji
+                    Action.TOOL_CLIPBOARD -> icClipboard
+                    Action.TOOL_VOICE -> icMic
+                    Action.TOOL_SETTINGS -> icSettings
+                    else -> return
+                }
+                drawIcon(canvas, d, r, cHint, dp(22f))
+            }
         }
-        // Shrink long words to fit the cell rather than cutting them off.
-        val maxW = r.width() - dp(8f)
-        suggestionPaint.textSize = suggestionSize
-        val tw = suggestionPaint.measureText(word)
-        if (tw > maxW) suggestionPaint.textSize = suggestionSize * maxW / tw
-        suggestionPaint.color = cText
-        suggestionPaint.isFakeBoldText = k.slot == 0
-        canvas.drawText(word, r.centerX(), r.centerY() + baselineOffset(suggestionPaint), suggestionPaint)
     }
 
     private fun drawKey(canvas: Canvas, k: KeyItem) {
-        if (k.action == Action.SUGGESTION) {
-            drawSuggestion(canvas, k)
+        if (k.hit.top < stripH && k.hit.bottom <= stripH + 0.5f) {
+            drawStripCell(canvas, k)
             return
         }
         val isPressed = k === pressed
         val r = k.rect
         val accent = when (k.action) {
-            Action.SHIFT -> layer == Layer.L2
+            Action.SHIFT -> layer == Layer.L2 && !numericMode
             Action.ENTER -> enterAction != EnterAction.NEWLINE
             else -> false
         }
@@ -392,11 +569,13 @@ class BanglaKeyboardView(context: Context) : View(context) {
         val def = k.def
         if (def != null) {
             textPaint.color = fg
-            canvas.drawText(def.primary, r.centerX(), r.centerY() + textBaseline, textPaint)
+            textPaint.textSize = k.textSize
+            canvas.drawText(def.primary, r.centerX(), r.centerY() + baselineOffset(textPaint, refGlyph(def.primary)), textPaint)
             val hint = def.longPress
-            if (hint != null) {
+            if (hint != null && showHints) {
                 hintPaint.color = if (accent) cOnAccent else cHint
-                canvas.drawText(hint, r.right - dp(4.5f), r.top + hintSize * 1.15f, hintPaint)
+                hintPaint.textSize = min(hintSize, r.width() * 0.3f)
+                canvas.drawText(hint, r.right - dp(4f), r.top + hintPaint.textSize * 1.15f, hintPaint)
             }
             return
         }
@@ -404,15 +583,34 @@ class BanglaKeyboardView(context: Context) : View(context) {
             Action.SHIFT -> drawIcon(
                 canvas,
                 when {
-                    layer == Layer.L2 && shiftMode == ShiftMode.LOCKED -> icShiftLocked
-                    layer == Layer.L2 -> icShiftFilled
+                    layer == Layer.L2 && shiftMode == ShiftMode.LOCKED && !numericMode -> icShiftLocked
+                    layer == Layer.L2 && !numericMode -> icShiftFilled
                     else -> icShift
                 },
                 r, fg,
             )
-            Action.SYMBOLS -> drawLabel(canvas, if (layer == Layer.L3) lettersLabel else symbolsLabel, r, fg)
+            Action.SYMBOLS -> {
+                drawLabel(canvas, if (layer == Layer.L3) lettersLabel() else symbolsLabel, r, fg)
+                if (showHints) {
+                    hintPaint.color = cHint
+                    hintPaint.textSize = hintSize
+                    canvas.drawText("☺", r.right - dp(4f), r.top + hintSize * 1.15f, hintPaint)
+                }
+            }
             Action.GLOBE -> drawIcon(canvas, icGlobe, r, fg)
-            Action.SPACE -> drawLabel(canvas, spaceLabel, r, cHint)
+            Action.VOWEL_TOGGLE -> {
+                // Shows what a tap switches to: signs (◌া) or vowels (অ). Tinted while flipped by hand.
+                textPaint.color = if (vowelManual) cAccent else fg
+                textPaint.textSize = min(k.textSize * 0.92f, k.rect.width() * 0.5f)
+                val label = if (vowelSigns) "অ" else "\u25CCা"
+                canvas.drawText(label, r.centerX(), r.centerY() + baselineOffset(textPaint, "ক"), textPaint)
+                if (showHints) {
+                    hintPaint.color = cHint
+                    hintPaint.textSize = min(hintSize, r.width() * 0.3f)
+                    canvas.drawText("⇄", r.right - dp(4f), r.top + hintPaint.textSize * 1.15f, hintPaint)
+                }
+            }
+            Action.SPACE -> drawLabel(canvas, if (language == Language.ENGLISH) "English" else "বাংলা", r, cHint)
             Action.BACKSPACE -> drawIcon(canvas, icBackspace, r, fg)
             Action.ENTER -> drawIcon(
                 canvas,
@@ -425,13 +623,15 @@ class BanglaKeyboardView(context: Context) : View(context) {
                 },
                 r, fg,
             )
-            Action.SUGGESTION, null -> Unit
+            else -> Unit
         }
     }
 
-    private fun drawIcon(canvas: Canvas, d: Drawable, r: RectF, tint: Int) {
+    private fun lettersLabel() = if (language == Language.ENGLISH) "ABC" else "কখগ"
+
+    private fun drawIcon(canvas: Canvas, d: Drawable, r: RectF, tint: Int, size: Float = iconSize) {
         d.setTint(tint)
-        val s = iconSize.roundToInt()
+        val s = size.roundToInt()
         val l = (r.centerX() - s / 2f).roundToInt()
         val t = (r.centerY() - s / 2f).roundToInt()
         d.setBounds(l, t, l + s, t + s)
@@ -488,6 +688,8 @@ class BanglaKeyboardView(context: Context) : View(context) {
     private fun beginPress(pointerId: Int, x: Float, y: Float) {
         activePointerId = pointerId
         longPressFired = false
+        cursorMode = false
+        downX = x
         val k = keyAt(x, y)
         press(k)
         if (k == null) return
@@ -509,25 +711,45 @@ class BanglaKeyboardView(context: Context) : View(context) {
             hidePreview()
             return
         }
-        if (k.def != null) showPreview(k, k.def.primary) else hidePreview()
-        val hasAlternate = k.def?.longPress != null || k.action == Action.GLOBE
+        if (k.def != null && showPreview) showPreview(k, k.def.primary) else hidePreview()
+        val hasAlternate = k.def?.longPress != null || k.action == Action.GLOBE || k.action == Action.SYMBOLS
         if (hasAlternate) {
             val r = Runnable { fireLongPress(k) }
             longPressRunnable = r
-            handler.postDelayed(r, LONG_PRESS_MS)
+            handler.postDelayed(r, longPressMs)
         }
     }
 
     private fun movePress(x: Float, y: Float) {
         if (longPressFired) return
+        val p = pressed
+        // Drag along the space bar: move the cursor one character per step.
+        if (p?.action == Action.SPACE) {
+            if (!cursorMode && abs(x - downX) > dp(16f)) {
+                cursorMode = true
+                cursorAnchorX = downX
+                cancelTimers()
+            }
+            if (cursorMode) {
+                val step = dp(11f)
+                val steps = ((x - cursorAnchorX) / step).toInt()
+                if (steps != 0) {
+                    onCursorMove?.invoke(steps)
+                    cursorAnchorX += steps * step
+                    if (prefs.vibrate) performHapticFeedback(HapticFeedbackConstants.CLOCK_TICK)
+                }
+                return
+            }
+        }
+        if (p?.action == Action.BACKSPACE && backspaceFiredOnDown) return // keep repeating even if the finger drifts
         val k = keyAt(x, y)
-        if (k !== pressed) press(k)
+        if (k !== p) press(k)
     }
 
     private fun fireLongPress(k: KeyItem) {
         longPressFired = true
         longPressRunnable = null
-        performHapticFeedback(HapticFeedbackConstants.LONG_PRESS)
+        if (prefs.vibrate) performHapticFeedback(HapticFeedbackConstants.LONG_PRESS)
         val alt = k.def?.longPress
         when {
             alt != null -> {
@@ -535,6 +757,7 @@ class BanglaKeyboardView(context: Context) : View(context) {
                 commitChar(alt)
             }
             k.action == Action.GLOBE -> onShowImePicker?.invoke()
+            k.action == Action.SYMBOLS -> onEmoji?.invoke()
         }
     }
 
@@ -543,62 +766,102 @@ class BanglaKeyboardView(context: Context) : View(context) {
         val k = pressed
         val fired = longPressFired
         val firedOnDown = backspaceFiredOnDown
+        val wasCursor = cursorMode
         pressed = null
         longPressFired = false
         backspaceFiredOnDown = false
+        cursorMode = false
         hidePreview()
         invalidate()
-        if (k == null || !commit || fired) return
+        if (k == null || !commit || fired || wasCursor) return
         val def = k.def
         when {
             def != null -> commitChar(def.primary)
-            k.action == Action.SUGGESTION -> suggestions.getOrNull(k.slot)?.let { word ->
-                onSuggestion?.invoke(word)
-                if (shiftMode == ShiftMode.ONESHOT) setLayer(Layer.L1, ShiftMode.NORMAL)
-            }
             k.action == Action.BACKSPACE -> if (!firedOnDown) onBackspace?.invoke()
-            k.action != null -> handleAction(k.action)
+            k.action != null -> handleAction(k)
         }
     }
 
     private fun commitChar(text: String) {
         onChar?.invoke(text)
-        if (shiftMode == ShiftMode.ONESHOT) setLayer(Layer.L1, ShiftMode.NORMAL)
+        if (shiftMode == ShiftMode.ONESHOT) {
+            autoShifted = false
+            setLayer(Layer.L1, ShiftMode.NORMAL)
+        }
+        // Switch the vowel row right away for the next key, without waiting for the editor.
+        vowelManual = false
+        setAutoVowelSigns(wantsVowelSign(text))
     }
 
-    private fun handleAction(action: Action) {
-        when (action) {
-            Action.SHIFT -> when {
-                layer == Layer.L2 && shiftMode == ShiftMode.ONESHOT -> setLayer(Layer.L2, ShiftMode.LOCKED)
-                layer == Layer.L2 -> setLayer(Layer.L1, ShiftMode.NORMAL)
-                else -> setLayer(Layer.L2, ShiftMode.ONESHOT)
+    private fun handleAction(k: KeyItem) {
+        when (k.action) {
+            Action.SHIFT -> {
+                autoShifted = false
+                when {
+                    numericMode -> Unit
+                    layer == Layer.L2 && shiftMode == ShiftMode.ONESHOT -> setLayer(Layer.L2, ShiftMode.LOCKED)
+                    layer == Layer.L2 -> setLayer(Layer.L1, ShiftMode.NORMAL)
+                    else -> setLayer(Layer.L2, ShiftMode.ONESHOT)
+                }
             }
-            Action.SYMBOLS ->
-                if (layer == Layer.L3) setLayer(Layer.L1, ShiftMode.NORMAL) else setLayer(Layer.L3, ShiftMode.NORMAL)
-            Action.GLOBE -> onSwitchIme?.invoke()
+            Action.SYMBOLS -> when {
+                layer == Layer.L3 && numericMode -> setLayer(Layer.L2, ShiftMode.LOCKED)
+                layer == Layer.L3 -> setLayer(Layer.L1, ShiftMode.NORMAL)
+                else -> setLayer(Layer.L3, ShiftMode.NORMAL)
+            }
+            Action.GLOBE -> onGlobe?.invoke()
+            Action.VOWEL_TOGGLE -> {
+                vowelSigns = !vowelSigns
+                vowelManual = true
+                rebuildKeys()
+            }
             Action.SPACE -> commitChar(" ")
             Action.ENTER -> onEnter?.invoke()
-            Action.BACKSPACE, Action.SUGGESTION -> Unit // handled in finishPress / on press
+            Action.SUGGESTION -> suggestions.getOrNull(k.slot)?.let { word ->
+                onSuggestion?.invoke(word)
+                if (shiftMode == ShiftMode.ONESHOT) setLayer(Layer.L1, ShiftMode.NORMAL)
+            }
+            Action.CLIP_CHIP -> onPasteClip?.invoke()
+            Action.TOOLBAR_TOGGLE -> {
+                toolbarOpen = !toolbarOpen
+                rebuildKeys()
+            }
+            Action.TOOL_EMOJI -> { closeToolbar(); onEmoji?.invoke() }
+            Action.TOOL_CLIPBOARD -> { closeToolbar(); onClipboard?.invoke() }
+            Action.TOOL_VOICE -> { closeToolbar(); onVoice?.invoke() }
+            Action.TOOL_SETTINGS -> { closeToolbar(); onSettings?.invoke() }
+            Action.BACKSPACE, null -> Unit
         }
     }
 
     private fun feedback(k: KeyItem) {
-        performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
-        audio?.playSoundEffect(
-            when (k.action) {
-                Action.BACKSPACE -> AudioManager.FX_KEYPRESS_DELETE
-                Action.ENTER -> AudioManager.FX_KEYPRESS_RETURN
-                Action.SPACE -> AudioManager.FX_KEYPRESS_SPACEBAR
-                else -> AudioManager.FX_KEYPRESS_STANDARD
-            }
-        )
+        if (prefs.vibrate) performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
+        if (prefs.sound) {
+            audio?.playSoundEffect(
+                when (k.action) {
+                    Action.BACKSPACE -> AudioManager.FX_KEYPRESS_DELETE
+                    Action.ENTER -> AudioManager.FX_KEYPRESS_RETURN
+                    Action.SPACE -> AudioManager.FX_KEYPRESS_SPACEBAR
+                    else -> AudioManager.FX_KEYPRESS_STANDARD
+                },
+                0.5f,
+            )
+        }
     }
 
+    /** Held ⌫: characters at first, then whole words once it has been held a while. */
     private fun startRepeat() {
+        var count = 0
         val r = object : Runnable {
             override fun run() {
-                onBackspace?.invoke()
-                handler.postDelayed(this, REPEAT_INTERVAL_MS)
+                count++
+                if (count > WORD_DELETE_AFTER) {
+                    onDeleteWord?.invoke()
+                    handler.postDelayed(this, WORD_REPEAT_INTERVAL_MS)
+                } else {
+                    onBackspace?.invoke()
+                    handler.postDelayed(this, REPEAT_INTERVAL_MS)
+                }
             }
         }
         repeatRunnable = r
@@ -616,8 +879,8 @@ class BanglaKeyboardView(context: Context) : View(context) {
 
     private fun showPreview(k: KeyItem, text: String) {
         val w = max(k.rect.width() * 1.35f, dp(48f)).roundToInt()
-        val h = (keyH * 1.3f).roundToInt()
-        preview.show(text, fontSize * 1.65f)
+        val h = (k.rect.height() * 1.3f).roundToInt()
+        preview.show(text, min(k.textSize * 1.65f, w * 0.8f), refGlyph(text))
         val loc = IntArray(2)
         getLocationInWindow(loc)
         val x = (loc[0] + k.rect.centerX() - w / 2f).roundToInt()
@@ -645,24 +908,51 @@ class BanglaKeyboardView(context: Context) : View(context) {
     }
 
     private companion object {
-        const val ROWS = CHAR_ROWS + 1
+        /**
+         * Height of the character area, in rows of the base key height. Layer 1 (4 rows) gets keys
+         * 10 % taller than the base; the 5-row layers (⇧, symbols) 12 % shorter.
+         */
+        const val CHAR_AREA = 4.4f
+        /** Width of the vowel/sign switch key, in letter-key widths. */
+        const val TOGGLE_WEIGHT = 0.7f
         const val SUGGESTION_SLOTS = 3
         /** Cell (left → right) to suggestion rank: best in the middle, like most keyboards. */
         val SLOT_FOR_CELL = intArrayOf(1, 0, 2)
-        const val LONG_PRESS_MS = 320L
         const val REPEAT_DELAY_MS = 380L
         const val REPEAT_INTERVAL_MS = 45L
+        const val WORD_DELETE_AFTER = 18
+        const val WORD_REPEAT_INTERVAL_MS = 160L
+
+        // ⇧ | !?# | 🌐 | ␣ ␣ | ।/. | ⌫ | ↵   — null = the punctuation key
+        val CONTROL_ROW = listOf(
+            Action.SHIFT to 1, Action.SYMBOLS to 1, Action.GLOBE to 1, Action.SPACE to 2,
+            null to 1, Action.BACKSPACE to 1, Action.ENTER to 1,
+        )
+        val CONTROL_UNITS = CONTROL_ROW.sumOf { it.second }
     }
 }
 
-/** Offset from a box centre to the baseline that visually centres a typical consonant. */
-private fun baselineOffset(p: Paint): Float {
-    val b = Rect()
-    p.getTextBounds(REF_GLYPH, 0, REF_GLYPH.length, b)
-    return -(b.top + b.bottom) / 2f
+/** A glyph whose height represents [label], so labels of one script share a baseline. */
+private fun refGlyph(label: String): String {
+    val c = label.firstOrNull() ?: return "ক"
+    return when {
+        c in 'a'..'z' -> "x"
+        c in 'A'..'Z' || c in '0'..'9' -> "H"
+        else -> "ক"
+    }
 }
 
-private const val REF_GLYPH = "ক"
+private val baselineCache = HashMap<String, Float>()
+
+/** Offset from a box centre to the baseline that visually centres [ref] at the paint's size. */
+private fun baselineOffset(p: Paint, ref: String): Float {
+    val key = "$ref|${p.textSize}|${p.typeface?.hashCode()}"
+    return baselineCache.getOrPut(key) {
+        val b = Rect()
+        p.getTextBounds(ref, 0, ref.length, b)
+        -(b.top + b.bottom) / 2f
+    }
+}
 
 /** The floating character preview shown above a pressed key. */
 private class KeyPreview(
@@ -681,7 +971,7 @@ private class KeyPreview(
         textAlign = Paint.Align.CENTER
     }
     private var text = ""
-    private var baseline = 0f
+    private var ref = "ক"
 
     init {
         background = GradientDrawable().apply {
@@ -691,16 +981,14 @@ private class KeyPreview(
         }
     }
 
-    fun show(text: String, textSize: Float) {
+    fun show(text: String, textSize: Float, ref: String) {
         this.text = text
-        if (paint.textSize != textSize) {
-            paint.textSize = textSize
-            baseline = baselineOffset(paint)
-        }
+        this.ref = ref
+        paint.textSize = textSize
         invalidate()
     }
 
     override fun onDraw(canvas: Canvas) {
-        canvas.drawText(text, width / 2f, height / 2f + baseline, paint)
+        canvas.drawText(text, width / 2f, height / 2f + baselineOffset(paint, ref), paint)
     }
 }

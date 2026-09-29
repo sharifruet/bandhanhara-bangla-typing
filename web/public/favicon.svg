@@ -1,80 +1,45 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 108 108" width="64" height="64">
   <defs>
-    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" stop-color="#0f172a"/>
-      <stop offset="100%" stop-color="#1e1b4b"/>
-    </linearGradient>
-    <radialGradient id="glow" cx="52%" cy="44%" r="48%">
-      <stop offset="0%" stop-color="#3730a3" stop-opacity="0.5"/>
-      <stop offset="100%" stop-color="#0f172a" stop-opacity="0"/>
+    <radialGradient id="bg" cx="0.45" cy="0.4" r="0.75">
+      <stop offset="0" stop-color="#F9F1DE"/>
+      <stop offset="0.6" stop-color="#F3E7CC"/>
+      <stop offset="1" stop-color="#EBDAB6"/>
     </radialGradient>
   </defs>
-
-  <!-- Background rounded square -->
-  <rect width="512" height="512" rx="96" fill="url(#bg)"/>
-
-  <!-- Soft indigo center glow -->
-  <ellipse cx="256" cy="210" rx="210" ry="170" fill="url(#glow)"/>
-
-  <!-- ── BIRD: minimal swift, side view, facing right ── -->
-
-  <!-- Body: elongated teardrop, tail-left to head-right -->
-  <path d="M 118 218
-           C 162 190 225 193 282 200
-           C 255 214 210 220 178 224
-           C 148 226 128 224 118 218 Z"
-        fill="white"/>
-
-  <!-- Primary wing: large swept-back shape above body -->
-  <path d="M 178 200
-           C 162 174 136 148 106 134
-           C 118 150 143 175 168 200 Z"
-        fill="white"/>
-
-  <!-- Wing secondary surface (under-wing, lower opacity) -->
-  <path d="M 175 205
-           C 205 218 245 224 282 219
-           C 252 214 210 208 182 204 Z"
-        fill="rgba(255,255,255,0.35)"/>
-
-  <!-- Forked tail -->
-  <path d="M 122 217 L 88 236" stroke="white" stroke-width="9" stroke-linecap="round" fill="none"/>
-  <path d="M 122 217 L 86 216" stroke="white" stroke-width="8" stroke-linecap="round" fill="none"/>
-
-  <!-- Head (small ellipse, slight tilt) -->
-  <ellipse cx="290" cy="198" rx="17" ry="14" fill="white" transform="rotate(-8 290 198)"/>
-
-  <!-- Eye -->
-  <circle cx="296" cy="194" r="4.5" fill="#0f172a"/>
-  <circle cx="297.5" cy="193" r="1.5" fill="white"/>
-
-  <!-- Beak (light blue accent) -->
-  <path d="M 302 197 L 325 192 L 302 202 Z" fill="#93c5fd"/>
-
-  <!-- ── Bangla text trail: the bird is "typing" characters ── -->
-
-  <!-- Connecting dots showing text flow from bird downward -->
-  <circle cx="308" cy="244" r="4"   fill="rgba(147,197,253,0.65)"/>
-  <circle cx="315" cy="260" r="3"   fill="rgba(147,197,253,0.45)"/>
-  <circle cx="321" cy="276" r="2.5" fill="rgba(147,197,253,0.28)"/>
-
-  <!-- Primary Bangla character: ক (ka) — largest, most opaque -->
-  <text x="268" y="380"
-        font-family="'Noto Sans Bengali', 'Noto Serif Bengali', serif"
-        font-size="105" font-weight="500"
-        fill="white" opacity="0.93">ক</text>
-
-  <!-- Secondary character: া (aa-diacritic) — fading out -->
-  <text x="378" y="352"
-        font-family="'Noto Sans Bengali', 'Noto Serif Bengali', serif"
-        font-size="72" font-weight="400"
-        fill="white" opacity="0.48">া</text>
-
-  <!-- ── Subtle keyboard-key hint at bottom ── -->
-  <rect x="135" y="450" width="36" height="26" rx="6" fill="rgba(255,255,255,0.07)"/>
-  <rect x="181" y="450" width="36" height="26" rx="6" fill="rgba(255,255,255,0.07)"/>
-  <rect x="227" y="450" width="36" height="26" rx="6" fill="rgba(255,255,255,0.07)"/>
-  <rect x="273" y="450" width="36" height="26" rx="6" fill="rgba(255,255,255,0.07)"/>
-  <rect x="319" y="450" width="36" height="26" rx="6" fill="rgba(255,255,255,0.07)"/>
-  <rect x="365" y="450" width="36" height="26" rx="6" fill="rgba(255,255,255,0.07)"/>
+  <rect width="108" height="108" rx="24" fill="url(#bg)"/>
+  <g transform="matrix(0.12 0 0 0.12 -9.49 -1.78)">
+    <path d="M488,652 A112,13 0 1,0 712,652 A112,13 0 1,0 488,652 Z" fill="#DCCDAA" fill-opacity="0.8"/>
+    <path d="M690,488 C715,500 742,508 770,512 C752,534 724,552 694,560 Z" fill="#2E5646"/>
+    <path d="M572,316 C628,314 668,356 670,414 C671,446 684,470 700,494 C716,524 706,560 684,582 C660,606 626,618 592,614 C548,610 512,584 500,544 C491,512 494,482 486,452 C476,414 480,370 506,342 C524,324 547,317 572,316 Z" fill="#3C6A58"/>
+    <path d="M498,488 C522,512 556,530 596,542 C616,550 616,580 598,600 C566,604 532,588 514,562 C502,544 496,516 498,488 Z" fill="#F8F2E3"/>
+    <path d="M598,600 C614,582 616,562 606,548 C624,560 626,584 610,598 Z" fill="#E4DCC8"/>
+    <path d="M606,468 C646,442 700,456 724,506 C730,520 726,532 714,536 C688,556 648,574 610,566 C592,536 590,494 606,468 Z" fill="#2E5646"/>
+    <path d="M628,500 C656,494 684,502 704,516" fill="none" stroke="#244538" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>
+    <path d="M624,530 C652,528 678,534 700,544" fill="none" stroke="#244538" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>
+    <path d="M598,606 L592,638" fill="none" stroke="#2E3E37" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/>
+    <path d="M592,638 L570,650 M592,638 L586,654 M592,638 L604,651" fill="none" stroke="#2E3E37" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/>
+    <path d="M634,606 L628,638" fill="none" stroke="#2E3E37" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/>
+    <path d="M628,638 L606,650 M628,638 L622,654 M628,638 L640,651" fill="none" stroke="#2E3E37" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/>
+    <path d="M495,408 A40,44 0 1,0 575,408 A40,44 0 1,0 495,408 Z" fill="#F8F2E3"/>
+    <path d="M515,412 Q532,392 550,410" fill="none" stroke="#233A31" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/>
+    <path d="M509.83,188.1 L370.08,474.02 L402.42,489.83 L542.17,203.9 A18,18 0 0,0 509.83,188.1 Z" fill="#DDB779" stroke="#8A6534" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
+    <path d="M542.17,203.9 L402.42,489.83 L393.53,485.48 L533.28,199.56 Z" fill="#A57C43" fill-opacity="0.35"/>
+    <path d="M510.03,271.95 L475.89,255.26 L472.37,262.45 L506.51,279.14 Z" fill="#A57C43"/>
+    <path d="M466.53,360.95 L432.39,344.26 L428.87,351.45 L463.01,368.14 Z" fill="#A57C43"/>
+    <path d="M402.42,489.83 L370.08,474.02 L367.17,488.18 L393.04,500.82 Z" fill="#8A6534"/>
+    <path d="M393.04,500.82 L367.17,488.18 L352,552 Z" fill="#C99B4E"/>
+    <path d="M370.44,514.27 L353.76,548.41" fill="none" stroke="#5B4424" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+    <path d="M367.32,512.47 A4,4 0 1,0 375.32,512.47 A4,4 0 1,0 367.32,512.47 Z" fill="#5B4424"/>
+    <path d="M492,470 C460,466 432,452 414,432 L434,410 C452,428 474,440 500,446 Z" fill="#3C6A58"/>
+    <path d="M372.21,426.9 A36,42 -28 1,0 435.79,393.1 A36,42 -28 1,0 372.21,426.9 Z" fill="#3C6A58"/>
+    <path d="M412,386 C432,378 446,390 440,402 C436,410 424,410 416,404 Z" fill="#3C6A58"/>
+    <path d="M414,408 C436,402 448,414 440,426 C434,432 422,430 416,424 Z" fill="#3C6A58"/>
+    <path d="M376,400 C388,394 402,396 412,404" fill="none" stroke="#244538" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>
+    <path d="M374,420 C386,414 400,416 410,424" fill="none" stroke="#244538" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>
+    <path d="M380,438 C392,434 404,436 412,442" fill="none" stroke="#244538" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>
+    <path d="M504,424 L462,436 L500,452 Z" fill="#B8433A"/>
+    <path d="M510,396 C486,396 458,404 440,414 C462,420 488,424 508,428 Z" fill="#E6A544"/>
+    <path d="M506,430 C488,436 472,444 462,452 C478,462 494,464 504,458 Z" fill="#C9852C"/>
+    <path d="M415.26 692Q407.5 676.86 397.54 666.46Q387.59 656.06 376.29 649.28L386.6 630.82Q392.84 634.25 399.16 640.16Q405.49 646.08 410.79 653.21Q416.1 660.35 419.41 667.93L416.16 668.08Q415.91 663.83 415.59 659.66Q415.27 655.49 415.12 651.06Q414.97 646.63 414.97 641.62V557.04H259.79V535.54H459.41V557.04H439.83V692ZM344.65 673.51Q331.48 673.51 319.57 668.8Q307.66 664.08 297.62 653.11Q287.58 642.13 279.83 623.56Q272.09 604.99 267.04 577.42L289.9 573.26Q293.5 593.7 298.51 608.25Q303.52 622.81 310.15 631.9Q316.77 640.99 324.94 645.31Q333.1 649.63 343.04 649.63Q353.03 649.63 359.45 645.51Q365.88 641.39 369.06 634.25Q372.24 627.11 372.24 618.22Q372.24 605.94 367.42 598.25Q362.6 590.56 354.72 590.56Q349.64 590.56 346.9 593.17Q344.15 595.79 344.15 601.17L325.98 598.6Q325.98 594.64 328.83 590.36Q331.67 586.09 338.25 583.09Q344.84 580.09 355.87 580.09Q356.98 582.21 357.85 586.82Q358.71 591.44 358.71 596.84Q358.71 606.33 353.56 611.81Q348.4 617.28 339.91 617.28Q331.05 617.28 325.35 610.94Q319.66 604.6 319.66 595.36Q319.66 583.87 327.74 576.42Q335.82 568.97 350.32 568.97Q365.07 568.97 375.15 575.77Q385.23 582.58 390.5 594.29Q395.78 606 395.78 621.02Q395.78 630.94 392.86 640.32Q389.95 649.7 383.73 657.25Q377.5 664.79 367.85 669.15Q358.21 673.51 344.65 673.51ZM333.9 579.17Q332.91 571.09 327.47 564.65Q322.02 558.22 311.93 555.63L334.02 547.47Q345.14 552.91 350.23 560.39Q355.33 567.87 356.4 578.42Z" fill="#1B5752"/>
+  </g>
 </svg>

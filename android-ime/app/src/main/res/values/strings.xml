@@ -1,6 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name">Bandhanhara Bangla</string>
+    <!-- Short name under the launcher icon, so it isn't cut off -->
+    <string name="launcher_name">বাঁধনহারা</string>
     <string name="ime_name">বাঁধনহারা বাংলা</string>
     <string name="subtype_bangla">বাংলা</string>
 
@@ -11,7 +13,7 @@
 
     <!-- Setup screen -->
     <string name="setup_title">বাঁধনহারা বাংলা</string>
-    <string name="setup_subtitle">Bandhanhara Bangla — a frequency-optimised Bangla keyboard with big keys</string>
+    <string name="setup_subtitle">Bandhanhara Bangla · Big keys, smart suggestions, made for Bangla</string>
 
     <string name="step1_title">কীবোর্ড চালু করুন</string>
     <string name="step1_title_en">Enable the keyboard</string>
@@ -29,7 +31,7 @@
 
     <string name="tips_title">টাইপ করার নিয়ম</string>
     <string name="tips_title_en">How to type</string>
-    <string name="tips_body">Tap ক for ক, hold it for খ. Every aspirate pair works this way: গ→ঘ, চ→ছ, জ→ঝ, ট→ঠ, ত→থ, দ→ধ, প→ফ, ব→ভ, স→শ, ন→ণ.\n\nVowels too: hold অ for আ, ই for ঈ, ি for ী, ে for ৈ.\n\n⇧ opens the second layer (rare letters, conjuncts, digits) for one key. Tap ⇧ twice to lock it.\n\n!?# opens symbols. Hold । for a comma.\n\nThe strip above the keys suggests words. Tap one to insert it. It learns the words you use, on this phone only.\n\nHold digits on the ⇧ layer for 0–9. Hold the 🌐 key to pick any keyboard.</string>
+    <string name="tips_body">Tap ক for ক, hold it for খ. Every aspirate pair works this way: গ→ঘ, চ→ছ, জ→ঝ, ট→ঠ, ত→থ, দ→ধ, প→ফ, ব→ভ, স→শ, ন→ণ. Vowels too: hold অ for আ, ি for ী.\n\nThe vowel row changes by itself: after a consonant it shows vowel signs (া ি ু), otherwise full vowels (অ ই উ). Tap its left key to switch by hand.\n\nযুক্তাক্ষর: type the first letter, then ্ (end of the third row), then the next letter — ক ্ ত = ক্ত. For ফলা after a consonant, tap ্র or ্য in the vowel row: ক ্য = ক্য, প ্র = প্র. Hold ্র for ৃ (কৃ). য় and ষ are on the first screen; ং is in the vowel row.\n\n⇧ opens rare letters, conjuncts and digits for one key; tap twice to lock. !?# opens symbols; hold it for emoji. Hold । for a comma.\n\n🌐 switches between বাংলা and English. Hold 🌐 to pick another keyboard.\n\nThe strip above the keys suggests words and learns yours. Its ⊞ button opens emoji, clipboard, voice typing and settings.\n\nDrag along the space bar to move the cursor. Hold ⌫ to delete whole words. Tap space twice to end a sentence.</string>
 
     <string name="learn_title">শেখা শব্দ</string>
     <string name="learn_title_en">Learning from your typing</string>
@@ -45,6 +47,57 @@
         <item quantity="one">%d word learned. Most used:</item>
         <item quantity="other">%d words learned. Most used:</item>
     </plurals>
+
+    <string name="setup_settings_button">Keyboard settings</string>
+
+    <!-- Keyboard panels -->
+    <string name="emoji_recent_empty">Emoji you use show up here.</string>
+    <string name="clipboard_title">Clipboard · last hour</string>
+    <string name="clipboard_clear">Clear</string>
+    <string name="clipboard_empty">Text you copy shows up here for an hour. Tap to paste, hold to remove.</string>
+    <string name="voice_unavailable">No voice typing is installed. Install Google voice typing to use the microphone.</string>
+
+    <!-- Settings -->
+    <string name="settings_title">Settings</string>
+    <string name="set_try">Try it</string>
+    <string name="set_appearance">Appearance</string>
+    <string name="set_theme">Theme</string>
+    <string name="set_theme_system">Follow system</string>
+    <string name="set_theme_light">Light</string>
+    <string name="set_theme_dark">Dark</string>
+    <string name="set_height">Keyboard height</string>
+    <string name="set_height_short">Short</string>
+    <string name="set_height_normal">Normal</string>
+    <string name="set_height_tall">Tall</string>
+    <string name="set_hints">Long-press hints</string>
+    <string name="set_hints_sum">Show the held character in the corner of each key</string>
+    <string name="set_typing">Typing</string>
+    <string name="set_globe">🌐 key</string>
+    <string name="set_globe_language">Switch বাংলা ⇄ English</string>
+    <string name="set_globe_keyboard">Switch to my other keyboard</string>
+    <string name="set_suggest">Word suggestions</string>
+    <string name="set_suggest_sum">Completions and next-word predictions above the keys</string>
+    <string name="set_auto_space">Space after a suggestion</string>
+    <string name="set_auto_space_sum">Punctuation typed next takes the space back</string>
+    <string name="set_double_space">Double-tap space for । or .</string>
+    <string name="set_double_space_sum">Ends the sentence and adds a space</string>
+    <string name="set_auto_caps">Auto-capitalise English</string>
+    <string name="set_auto_caps_sum">A capital at the start of each sentence</string>
+    <string name="set_long_press">Long-press delay</string>
+    <string name="set_long_press_short">Short (250 ms)</string>
+    <string name="set_long_press_normal">Normal (320 ms)</string>
+    <string name="set_long_press_long">Long (450 ms)</string>
+    <string name="set_feedback">Feedback</string>
+    <string name="set_vibrate">Vibrate on keypress</string>
+    <string name="set_sound">Sound on keypress</string>
+    <string name="set_preview">Key preview</string>
+    <string name="set_preview_sum">Show a large letter above the key while pressed</string>
+    <string name="set_about">About</string>
+    <string name="set_version">বাঁধনহারা বাংলা · Version %1$s</string>
+    <string name="set_credits">Bangla and English word lists: FrequencyWords (CC BY-SA 4.0). Phrases: Tatoeba (CC BY 2.0 FR). Emoji list: Unicode. Font: Noto Sans Bengali (OFL).</string>
+    <string name="set_open_setup">Open setup guide</string>
+
+    <string name="footer">Version %1$s\nWord list: FrequencyWords (CC BY-SA 4.0) · Phrases: Tatoeba (CC BY 2.0 FR)</string>
 
     <string name="status_done">✓ Done</string>
     <string name="status_pending">Not yet</string>

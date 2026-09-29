@@ -1,28 +1,29 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <!-- Brand (from the logo: forest-green bird on warm cream) -->
+    <color name="brand_green">#2F6B5B</color>
+    <color name="brand_cream">#F3E7CC</color>
+
     <!-- Keyboard — light -->
-    <color name="kb_bg">#E3E6EC</color>
+    <color name="kb_bg">#E8E4DA</color>
     <color name="kb_key">#FFFFFF</color>
-    <color name="kb_key_pressed">#D3D8E0</color>
-    <color name="kb_action">#C2C8D2</color>
-    <color name="kb_action_pressed">#ADB4C0</color>
-    <color name="kb_text">#1B1F27</color>
-    <color name="kb_hint">#6B7280</color>
+    <color name="kb_key_pressed">#DCD6C8</color>
+    <color name="kb_action">#D2CCBD</color>
+    <color name="kb_action_pressed">#BFB8A7</color>
+    <color name="kb_text">#1E2622</color>
+    <color name="kb_hint">#74706A</color>
     <color name="kb_key_shadow">#2E000000</color>
-    <color name="kb_accent">#4F46E5</color>
+    <color name="kb_accent">#2F6B5B</color>
     <color name="kb_on_accent">#FFFFFF</color>
     <color name="kb_preview">#FFFFFF</color>
     <color name="kb_preview_border">#22000000</color>
 
-    <!-- Setup screen — light -->
-    <color name="setup_bg">#F5F6F9</color>
+    <!-- Setup and settings screens — light -->
+    <color name="setup_bg">#F7F2E6</color>
     <color name="setup_card">#FFFFFF</color>
-    <color name="setup_text">#161A22</color>
-    <color name="setup_muted">#6B7280</color>
-    <color name="setup_field">#EEF0F4</color>
-    <color name="setup_success">#15803D</color>
-    <color name="accent">#4F46E5</color>
-
-    <!-- Launcher icon -->
-    <color name="ic_launcher_background">#0F172A</color>
+    <color name="setup_text">#1D2521</color>
+    <color name="setup_muted">#6F6A60</color>
+    <color name="setup_field">#F1EADB</color>
+    <color name="setup_success">#2F7A4F</color>
+    <color name="accent">#2F6B5B</color>
 </resources>

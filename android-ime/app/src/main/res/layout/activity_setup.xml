@@ -17,10 +17,12 @@
 
         <!-- Header -->
         <ImageView
-            android:layout_width="72dp"
-            android:layout_height="72dp"
+            android:layout_width="84dp"
+            android:layout_height="84dp"
             android:contentDescription="@string/app_name"
-            android:src="@mipmap/ic_launcher" />
+            android:elevation="6dp"
+            android:outlineProvider="none"
+            android:src="@drawable/ic_logo" />
 
         <TextView
             android:layout_width="wrap_content"
@@ -255,74 +257,15 @@
                 android:textSize="22sp" />
         </LinearLayout>
 
-        <!-- Learning -->
-        <LinearLayout
+        <!-- Settings -->
+        <Button
+            android:id="@+id/btn_settings"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="12dp"
-            android:background="@drawable/bg_card"
-            android:orientation="vertical"
-            android:padding="18dp">
-
-            <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:fontFamily="@font/noto_sans_bengali"
-                android:text="@string/learn_title"
-                android:textColor="@color/setup_text"
-                android:textSize="18sp" />
-
-            <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="@string/learn_title_en"
-                android:textColor="@color/setup_muted"
-                android:textSize="13sp" />
-
-            <TextView
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="10dp"
-                android:text="@string/learn_desc"
-                android:textColor="@color/setup_muted"
-                android:textSize="14sp" />
-
-            <TextView
-                android:id="@+id/learn_summary"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="12dp"
-                android:textColor="@color/setup_text"
-                android:textSize="15sp"
-                android:textStyle="bold" />
-
-            <TextView
-                android:id="@+id/learn_words"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="4dp"
-                android:fontFamily="@font/noto_sans_bengali"
-                android:textColor="@color/setup_text"
-                android:textSize="16sp" />
-
-            <Switch
-                android:id="@+id/switch_learn"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="8dp"
-                android:minHeight="48dp"
-                android:text="@string/learn_switch"
-                android:textColor="@color/setup_text"
-                android:textSize="15sp" />
-
-            <Button
-                android:id="@+id/btn_clear"
-                style="?android:attr/borderlessButtonStyle"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="@string/learn_clear"
-                android:textColor="@color/accent" />
-        </LinearLayout>
+            android:backgroundTint="@color/accent"
+            android:text="@string/setup_settings_button"
+            android:textColor="#FFFFFF" />
 
         <!-- Tips -->
         <LinearLayout
@@ -358,5 +301,16 @@
                 android:textColor="@color/setup_text"
                 android:textSize="15sp" />
         </LinearLayout>
+
+        <!-- Footer: version and data credits -->
+        <TextView
+            android:id="@+id/footer"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="20dp"
+            android:gravity="center"
+            android:lineSpacingExtra="2sp"
+            android:textColor="@color/setup_muted"
+            android:textSize="12sp" />
     </LinearLayout>
 </ScrollView>

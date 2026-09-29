@@ -1,22 +1,17 @@
 package com.bandhanhara.bangla
 
 import android.app.Activity
-import android.app.AlertDialog
 import android.content.Intent
 import android.graphics.Rect
 import android.os.Build
 import android.os.Bundle
 import android.provider.Settings
-import android.text.Editable
-import android.text.TextWatcher
 import android.view.View
 import android.view.ViewTreeObserver
 import android.view.WindowInsets
 import android.view.inputmethod.InputMethodManager
 import android.widget.Button
-import android.widget.EditText
 import android.widget.ScrollView
-import android.widget.Switch
 import android.widget.TextView
 import kotlin.math.max
 
@@ -31,13 +26,8 @@ class SetupActivity : Activity() {
     private lateinit var btnEnable: Button
     private lateinit var btnChoose: Button
 
-    private lateinit var learnSummary: TextView
-    private lateinit var learnWords: TextView
-    private lateinit var switchLearn: Switch
-    private val refreshLearningRunnable = Runnable { refreshLearning() }
 
     private val imm: InputMethodManager by lazy { getSystemService(InputMethodManager::class.java) }
-    private val suggester: Suggester by lazy { Suggester.get(this) }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -52,24 +42,13 @@ class SetupActivity : Activity() {
             startActivity(Intent(Settings.ACTION_INPUT_METHOD_SETTINGS).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
         }
         btnChoose.setOnClickListener { imm.showInputMethodPicker() }
+        findViewById<Button>(R.id.btn_settings).setOnClickListener {
+            startActivity(Intent(this, SettingsActivity::class.java))
+        }
 
-        // Learning card
-        learnSummary = findViewById(R.id.learn_summary)
-        learnWords = findViewById(R.id.learn_words)
-        switchLearn = findViewById(R.id.switch_learn)
-        switchLearn.isChecked = suggester.learningEnabled
-        switchLearn.setOnCheckedChangeListener { _, on -> suggester.learningEnabled = on }
-        findViewById<Button>(R.id.btn_clear).setOnClickListener { confirmClear() }
-        // Show new words appear as the user tries the keyboard in the test field.
-        findViewById<EditText>(R.id.test_field).addTextChangedListener(object : TextWatcher {
-            override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) = Unit
-            override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) = Unit
-            override fun afterTextChanged(s: Editable?) {
-                learnSummary.removeCallbacks(refreshLearningRunnable)
-                learnSummary.postDelayed(refreshLearningRunnable, 400)
-            }
-        })
-        suggester.whenReady(::refreshLearning)
+
+        val version = packageManager.getPackageInfo(packageName, 0).versionName ?: ""
+        findViewById<TextView>(R.id.footer).text = getString(R.string.footer, version)
 
         // Edge-to-edge (enforced from Android 15): pad for system bars and the keyboard ourselves,
         // then keep the focused "try it" field in view above the keyboard.
@@ -128,33 +107,8 @@ class SetupActivity : Activity() {
         setStatus(step2Status, current)
         btnEnable.visibility = if (enabled) View.GONE else View.VISIBLE
         btnChoose.visibility = if (current || !enabled) View.GONE else View.VISIBLE
-        suggester.whenReady(::refreshLearning)
     }
 
-    private fun refreshLearning() {
-        switchLearn.isChecked = suggester.learningEnabled
-        val n = suggester.learnedWordCount
-        if (n == 0) {
-            learnSummary.setText(R.string.learn_none)
-            learnWords.visibility = View.GONE
-        } else {
-            learnSummary.text = resources.getQuantityString(R.plurals.learn_count, n, n)
-            learnWords.text = suggester.topLearnedWords(12).joinToString("  ·  ")
-            learnWords.visibility = View.VISIBLE
-        }
-    }
-
-    private fun confirmClear() {
-        AlertDialog.Builder(this)
-            .setTitle(R.string.learn_clear_confirm_title)
-            .setMessage(R.string.learn_clear_confirm_body)
-            .setPositiveButton(R.string.learn_clear_confirm_ok) { _, _ ->
-                suggester.clearLearned()
-                refreshLearning()
-            }
-            .setNegativeButton(android.R.string.cancel, null)
-            .show()
-    }
 
     private fun setStatus(view: TextView, done: Boolean) {
         view.setText(if (done) R.string.status_done else R.string.status_pending)
